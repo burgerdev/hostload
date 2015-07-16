@@ -1,2 +1,2 @@
 # hostload
-module targeted for hostload prediction on google dataset (code for master thesis)
+module for time series prediction with pylearn2 (code for master thesis)
