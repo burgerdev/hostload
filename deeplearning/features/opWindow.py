@@ -36,3 +36,10 @@ class OpWindow(Operator):
     @classmethod
     def applyWindowFunction(cls, input_array, window_size, output_array):
         raise NotImplementedError()
+
+
+class OpRawWindowed(OpWindow):
+
+    @classmethod
+    def applyWindowFunction(cls, input_array, window_size, output_array):
+        output_array[:] = input_array[window_size-1:]

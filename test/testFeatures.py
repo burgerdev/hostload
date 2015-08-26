@@ -6,6 +6,7 @@ import vigra
 
 from lazyflow.graph import Graph
 
+from deeplearning.features import OpRawWindowed
 from deeplearning.features import OpMean
 from deeplearning.features import OpLinearWeightedMean
 from deeplearning.features import OpFairness
@@ -59,4 +60,10 @@ class TestOpFairness(TestOpMean):
         exp[4] = (225)/float(100+4+9)
         exp = exp/3.0
         return op, exp
-    
+
+
+class TestOpRawWindowed(TestOpMean):
+    def getOp(self):
+        op = OpRawWindowed(graph=Graph())
+        exp = np.asarray([3, 4, 10, 2, 3])
+        return op, exp
