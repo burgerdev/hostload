@@ -1,0 +1,1 @@
+from opExponentiallySegmentedPattern import OpExponentiallySegmentedPattern
