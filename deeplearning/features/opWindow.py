@@ -1,5 +1,6 @@
 
 import numpy as np
+import vigra
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
@@ -12,15 +13,15 @@ class OpWindow(Operator):
     Output = OutputSlot()
 
     def setupOutputs(self):
-        self.Output.meta.assignFrom(self.Input.meta)
         ws = self.WindowSize.value
         self.Output.meta.shape = (self.Input.meta.shape[0] - ws + 1,)
+        self.Output.meta.axistags = vigra.defaultAxistags('t')
         self.Output.meta.dtype = np.float32
 
     def execute(self, slot, subindex, roi, result):
         window = self.WindowSize.value
         n = roi.stop[0] - roi.start[0]
-        new_stop = (roi.stop[0] + n - 1,)
+        new_stop = (roi.stop[0] + window - 1,)
         new_roi = SubRegion(self.Input, start=roi.start, stop=new_stop)
         x = self.Input.get(new_roi).wait()
 

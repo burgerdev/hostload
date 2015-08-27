@@ -1,5 +1,6 @@
 
 import numpy as np
+import vigra
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
@@ -14,8 +15,8 @@ class OpExponentiallySegmentedPattern(Operator):
 
     def setupOutputs(self):
         n = self.NumSegments.value
-        self.Output.meta.assignFrom(self.Input.meta)
         self.Output.meta.shape = (self.Input.meta.shape[0], n)
+        self.Output.meta.axistags = vigra.defaultAxistags('tc')
         self.Output.meta.dtype = np.float32
 
     def execute(self, slot, subindex, roi, result):
