@@ -6,7 +6,7 @@ import vigra
 
 from lazyflow.graph import Graph
 
-from deeplearning import OpTrainTestSplit
+from deeplearning.split import OpTrainTestSplit
 
 
 class TestOpTrainTestSplit(unittest.TestCase):
@@ -49,3 +49,7 @@ class TestOpTrainTestSplit(unittest.TestCase):
         np.testing.assert_array_equal(d[:72, :], np.zeros((72, 5)))
         np.testing.assert_array_equal(d[72:80, :], np.ones((8, 5)))
         np.testing.assert_array_equal(d[80:, :], 2*np.ones((20, 5)))
+
+        d = op.Description[71:73, 0:1].wait().squeeze()
+        expected = np.asarray([0, 1], dtype=np.int)
+        np.testing.assert_array_equal(d, expected)
