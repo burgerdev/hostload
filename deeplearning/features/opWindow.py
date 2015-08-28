@@ -13,17 +13,21 @@ class OpWindow(Operator):
     Output = OutputSlot()
 
     def setupOutputs(self):
-        ws = self.WindowSize.value
-        self.Output.meta.shape = (self.Input.meta.shape[0] - ws + 1,)
+        self.Output.meta.shape = (self.Input.meta.shape[0],)
         self.Output.meta.axistags = vigra.defaultAxistags('t')
         self.Output.meta.dtype = np.float32
 
     def execute(self, slot, subindex, roi, result):
         window = self.WindowSize.value
-        n = roi.stop[0] - roi.start[0]
-        new_stop = (roi.stop[0] + window - 1,)
-        new_roi = SubRegion(self.Input, start=roi.start, stop=new_stop)
+        padding_size = max(window - 1 - roi.start[0], 0)
+        padding = np.zeros((padding_size,), dtype=np.float32)
+        new_start = (roi.start[0] - window + 1 + padding_size,)
+        new_stop = (roi.stop[0],)
+        new_roi = SubRegion(self.Input, start=new_start, stop=new_stop)
         x = self.Input.get(new_roi).wait()
+        x = vigra.taggedView(x, axistags=self.Input.meta.axistags)
+        x = x.withAxes('t').view(np.ndarray)
+        x = np.concatenate((padding, x))
 
         self.applyWindowFunction(x, window, result)
 

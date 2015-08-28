@@ -31,7 +31,7 @@ class OpExponentiallySegmentedPattern(Operator):
         else:
             new_stop = (max_t,)
             to_fill = roi.stop[0]+max_segment-1 - max_t
-        filler = np.nan*np.zeros((to_fill,))
+        filler = np.zeros((to_fill,))
         new_roi = SubRegion(self.Input, start=new_start, stop=new_stop)
         x = self.Input.get(new_roi).wait()
         x = np.concatenate((x, filler))
@@ -41,6 +41,26 @@ class OpExponentiallySegmentedPattern(Operator):
             s = b*2**c
             f = np.ones((s,), dtype=np.float32)/float(s)
             result[:, i] = np.convolve(x, f, mode='full')[s-1:n_interior+s-1]
+
+    def propagateDirty(self, slot, subindex, roi):
+        self.Output.setDirty(slice(None))
+
+
+class OpNormalize(Operator):
+    Input = InputSlot()
+    Mean = InputSlot(value=0.0)
+    StdDev = InputSlot(value=1.0)
+
+    Output = OutputSlot()
+
+    def setupOutputs(self):
+        self.Output.meta.assignFrom(self.Input.meta)
+
+    def execute(self, slot, subindex, roi, result):
+        req = self.Input.get(roi)
+        req.writeInto(result)
+        req.block()
+        result[:] = (result - float(self.Mean.value)) / float(self.StdDev.value)
 
     def propagateDirty(self, slot, subindex, roi):
         self.Output.setDirty(slice(None))

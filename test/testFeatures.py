@@ -27,7 +27,7 @@ class TestOpMean(unittest.TestCase):
         op.WindowSize.setValue(self.window_size)
 
         y = op.Output[...].wait()
-        np.testing.assert_array_equal(y.shape, (5,))
+        np.testing.assert_array_equal(y.shape, (7,))
 
         np.testing.assert_array_almost_equal(y, exp)
 
@@ -38,26 +38,28 @@ class TestOpMean(unittest.TestCase):
 
     def getOp(self):
         op = OpMean(graph=Graph())
-        exp = np.asarray([15, 14, 17, 16, 15])/3.0
+        exp = np.asarray([5, 12, 15, 14, 17, 16, 15])/3.0
         return op, exp
 
 
 class TestOpLinearWeightedMean(TestOpMean):
     def getOp(self):
         op = OpLinearWeightedMean(graph=Graph())
-        exp = np.asarray([28, 25, 41, 30, 23])/6.0
+        exp = np.asarray([15, 31, 28, 25, 41, 30, 23])/6.0
         return op, exp
 
 
 class TestOpFairness(TestOpMean):
     def getOp(self):
         op = OpFairness(graph=Graph())
-        exp = np.zeros((5,))
-        exp[0] = (225)/float(25+49+9)
-        exp[1] = (196)/float(49+9+16)
-        exp[2] = (289)/float(9+16+100)
-        exp[3] = (256)/float(16+100+4)
-        exp[4] = (225)/float(100+4+9)
+        exp = np.zeros((7,))
+        exp[0] = 1.0
+        exp[1] = (144)/float(25+49)
+        exp[2] = (225)/float(25+49+9)
+        exp[3] = (196)/float(49+9+16)
+        exp[4] = (289)/float(9+16+100)
+        exp[5] = (256)/float(16+100+4)
+        exp[6] = (225)/float(100+4+9)
         exp = exp/3.0
         return op, exp
 
@@ -65,5 +67,5 @@ class TestOpFairness(TestOpMean):
 class TestOpRawWindowed(TestOpMean):
     def getOp(self):
         op = OpRawWindowed(graph=Graph())
-        exp = np.asarray([3, 4, 10, 2, 3])
+        exp = np.asarray([5, 7, 3, 4, 10, 2, 3])
         return op, exp
