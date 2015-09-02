@@ -4,19 +4,17 @@ import unittest
 import numpy as np
 import vigra
 
-from sklearn.svm import SVC
-
 from lazyflow.graph import Graph
 
-from deeplearning.classifiers import OpSVMTrain
-from deeplearning.classifiers import OpSVMPredict
+from deeplearning.classifiers import OpStateTrain
+from deeplearning.classifiers import OpStatePredict
 
 
-class TestOpSVM(unittest.TestCase):
+class TestOpState(unittest.TestCase):
     def setUp(self):
-        X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
+        X = np.array([[1.2, 5], [2.2, 8], [3.1, 15], [3.9, 17]])
         X = vigra.taggedView(X, axistags='tc')
-        y = np.array([1, 1, 2, 2], dtype=np.int)
+        y = np.array([1, 2, 3, 4], dtype=np.int)
         y = vigra.taggedView(y, axistags='t')
 
         self.X = X
@@ -31,7 +29,7 @@ class TestOpSVM(unittest.TestCase):
         self.yvalid = y
 
     def testTrain(self):
-        op = OpSVMTrain(graph=Graph())
+        op = OpStateTrain(graph=Graph())
 
         op.Train.resize(2)
         op.Train[0].setValue(self.X)
@@ -41,12 +39,12 @@ class TestOpSVM(unittest.TestCase):
         op.Valid[0].setValue(self.Xvalid)
         op.Valid[1].setValue(self.yvalid)
 
-        svc = op.Classifier[0].wait()[0]
-        assert isinstance(svc, SVC), "was {}".format(type(svc))
+        idx = op.Classifier[0].wait()[0]
+        assert isinstance(idx, int), "was {}".format(type(idx))
 
     def testPredict(self):
         g = Graph()
-        op = OpSVMTrain(graph=g)
+        op = OpStateTrain(graph=g)
 
         op.Train.resize(2)
         op.Train[0].setValue(self.X)
@@ -56,12 +54,13 @@ class TestOpSVM(unittest.TestCase):
         op.Valid[0].setValue(self.Xvalid)
         op.Valid[1].setValue(self.yvalid)
 
-        svc = op.Classifier[0].wait()[0]
-        assert isinstance(svc, SVC), "was {}".format(type(svc))
+        idx = op.Classifier[0].wait()[0]
+        assert isinstance(idx, int), "was {}".format(type(idx))
 
-        pred = OpSVMPredict(graph=g)
+        pred = OpStatePredict(graph=g)
         pred.Classifier.connect(op.Classifier)
         pred.Input.setValue(self.X)
 
         res = pred.Output[...].wait()
-        np.testing.assert_array_equal(res, self.y.view(np.ndarray))
+        np.testing.assert_array_almost_equal(res,
+                                             self.y.view(np.ndarray))

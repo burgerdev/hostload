@@ -1,15 +1,13 @@
 
 import numpy as np
 
-from sklearn.svm import SVC
-
 from lazyflow.rtype import SubRegion
 
 from .abcs import OpTrain
 from .abcs import OpPredict
 
 
-class OpSVMTrain(OpTrain):
+class OpStateTrain(OpTrain):
     def execute(self, slot, subindex, roi, result):
         assert len(self.Train) == 2, "need data and target"
         assert len(self.Valid) == 2, "need data and target"
@@ -19,6 +17,7 @@ class OpSVMTrain(OpTrain):
         train = self.Train[0][...].wait()
         valid = self.Valid[0][...].wait()
         X = np.concatenate((train, valid), axis=0)
+        X = X.view(np.ndarray)
 
         assert len(self.Train[1].meta.shape) == 1,\
             "target needs to be a vector"
@@ -27,14 +26,15 @@ class OpSVMTrain(OpTrain):
         train = self.Train[1][...].wait()
         valid = self.Valid[1][...].wait()
         y = np.concatenate((train, valid), axis=0)
+        y = y.view(np.ndarray)[:, np.newaxis]
 
-        svc = SVC()
-        svc.fit(X, y)
+        sse = np.square(X-y).sum(axis=0)
+        idx = np.argmin(sse)
 
-        result[0] = svc
+        result[0] = idx
 
 
-class OpSVMPredict(OpPredict):
+class OpStatePredict(OpPredict):
     def execute(self, slot, subindex, roi, result):
         a = roi.start[0]
         b = roi.stop[0]
@@ -44,6 +44,5 @@ class OpSVMPredict(OpPredict):
         new_roi = SubRegion(self.Input, start=(a, c), stop=(b, d))
         X = self.Input.get(new_roi).wait()
 
-        svc = self.Classifier[...].wait()[0]
-        assert isinstance(svc, SVC), "type was {}".format(type(svc))
-        result[:] = svc.predict(X)
+        idx = self.Classifier[...].wait()[0]
+        result[:] = np.round(X[:, idx]).astype(np.int)

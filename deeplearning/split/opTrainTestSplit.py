@@ -23,9 +23,11 @@ class OpTrainTestSplit(Operator):
 
     # 0: train, 1: valid, 2: test
     Description = OutputSlot()
+    All = OutputSlot()
 
     def __init__(self, *args, **kwargs):
         super(OpTrainTestSplit, self).__init__(*args, **kwargs)
+        self.All.connect(self.Input)
 
     def setupOutputs(self):
         size_t = self.Input.meta.shape[0]
