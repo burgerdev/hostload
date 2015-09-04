@@ -8,6 +8,11 @@ from .abcs import OpPredict
 
 
 class OpStateTrain(OpTrain):
+    @staticmethod
+    def build(d, graph=None, parent=None, workingdir=None):
+        op = OpStateTrain(graph=graph, parent=parent)
+        return op
+
     def execute(self, slot, subindex, roi, result):
         assert len(self.Train) == 2, "need data and target"
         assert len(self.Valid) == 2, "need data and target"
@@ -35,6 +40,11 @@ class OpStateTrain(OpTrain):
 
 
 class OpStatePredict(OpPredict):
+    @staticmethod
+    def build(d, graph=None, parent=None, workingdir=None):
+        op = OpStatePredict(graph=graph, parent=parent)
+        return op
+
     def execute(self, slot, subindex, roi, result):
         a = roi.start[0]
         b = roi.stop[0]

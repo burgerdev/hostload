@@ -1,2 +1,2 @@
-from expandDict import expandDict
-from expandDict import listifyDict
+from .expandDict import expandDict
+from .expandDict import listifyDict
