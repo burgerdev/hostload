@@ -6,6 +6,11 @@ from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
 
 
+class SplitTypes:
+    TRAIN = 0
+    VALID = 1
+    TEST = 2
+
 class OpTrainTestSplit(Operator):
 
     # expects (t, c) inputs
@@ -23,7 +28,7 @@ class OpTrainTestSplit(Operator):
     Valid = OutputSlot(level=1)
     Test = OutputSlot(level=1)
 
-    # 0: train, 1: valid, 2: test
+    # see SplitTypes
     Description = OutputSlot()
     All = OutputSlot(level=1)
 

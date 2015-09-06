@@ -11,6 +11,11 @@ class OpTrain(Operator):
 
     Classifier = OutputSlot()
 
+    @classmethod
+    def build(cls, d, parent=None, graph=None, workingdir=None):
+        op = cls(parent=parent, graph=graph)
+        return op
+
     def setupOutputs(self):
         self.Classifier.meta.shape = (1,)
         self.Classifier.meta.dtype = np.object
@@ -24,6 +29,11 @@ class OpPredict(Operator):
     Classifier = InputSlot()
 
     Output = OutputSlot()
+
+    @classmethod
+    def build(cls, d, parent=None, graph=None, workingdir=None):
+        op = cls(parent=parent, graph=graph)
+        return op
 
     def setupOutputs(self):
         n = self.Input.meta.shape[0]

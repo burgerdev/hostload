@@ -40,7 +40,7 @@ class Workflow(object):
         self._workingdir = workingdir
 
     def run(self):
-        self._predictionCache.Output[...].block()
+        self._report.Output[...].block()
 
     def _initialize(self):
         source = self._source
@@ -51,6 +51,7 @@ class Workflow(object):
         cc = self._classifierCache
         predict = self._predict
         pc = self._predictionCache
+        report = self._report
 
         features.Input.connect(source.Output)
         target.Input.connect(source.Output)
@@ -69,8 +70,14 @@ class Workflow(object):
 
         pc.Input.connect(predict.Output)
 
+        report.All.resize(2)
+        report.All[0].connect(pc.Output)
+        report.All[1].connect(target.Output)
+        report.Description.connect(split.Description)
+
     def _writeConfig(self, d):
         s = dumps(d, indent=4, sort_keys=True)
         fn = os.path.join(self._workingdir, "config.json")
         with open(fn, "w") as f:
             f.write(s)
+            f.write("\n")
