@@ -4,6 +4,8 @@ import os
 
 from lazyflow.graph import Graph
 
+from deeplearning.tools.serialization import dumps
+
 
 class Workflow(object):
     @staticmethod
@@ -28,6 +30,8 @@ class Workflow(object):
             setattr(w, attr, d[key]["class"].build(d[key], **kwargs))
 
         w._initialize()
+
+        w._writeConfig(d)
 
         return w
 
@@ -64,3 +68,9 @@ class Workflow(object):
         predict.Input.connect(split.All[0])
 
         pc.Input.connect(predict.Output)
+
+    def _writeConfig(self, d):
+        s = dumps(d, indent=4, sort_keys=True)
+        fn = os.path.join(self._workingdir, "config.json")
+        with open(fn, "w") as f:
+            f.write(s)

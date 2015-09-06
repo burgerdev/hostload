@@ -18,9 +18,12 @@ from deeplearning.data import OpHDF5Cache
 class OpSource(OpArrayPiperWithAccessCount):
     @staticmethod
     def build(d, graph=None, parent=None, workingdir=None):
-        assert "data" in d
+        assert "shape" in d
+        data = np.random.random(size=d["shape"])
+        tags = "".join([t for s, t in zip(data.shape, 'txyzc')])
+        data = vigra.taggedView(data, axistags=tags)
         op = OpSource(parent=parent, graph=graph)
-        op.Input.setValue(d["data"])
+        op.Input.setValue(data)
         return op
 
 
@@ -46,13 +49,9 @@ class OpTarget(OpArrayPiperWithAccessCount):
     def execute(self, slot, subindex, roi, result):
         result[:] = 0
 
-
-data = np.linspace(0, 1, 1000)
-data = vigra.taggedView(data, axistags='t')
-
 config = {"class": Workflow,
           "source": {"class": OpSource,
-                     "data": data},
+                     "shape": (1000,)},
           "features": {"class": OpFeatures},
           "target": {"class": OpTarget},
           "split": {"class": OpTrainTestSplit},

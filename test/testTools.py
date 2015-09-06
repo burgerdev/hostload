@@ -5,6 +5,9 @@ from pprint import pprint
 from deeplearning.tools import listifyDict
 from deeplearning.tools import expandDict
 
+from deeplearning.tools.serialization import dumps
+from deeplearning.tools.serialization import loads
+
 class TestTools(unittest.TestCase):
     def setUp(self):
         pass
@@ -35,6 +38,19 @@ class TestTools(unittest.TestCase):
             pprint(l)
             pprint(l2)
             raise AssertionError("expandDict produced unexpected dicts")
+
+    def testSerialization(self):
+        from lazyflow.operator import Operator
+        from deeplearning.data import OpPickleCache
+        d = {"class": Operator,
+             "cache": {"class": OpPickleCache}}
+        s = dumps(d)
+        print("serialized to: \n{}".format(s))
+        d2 = loads(s)
+        print("")
+        print(d)
+        print(d2)
+        assert d == d2
 
 
 def contentEqual(a, b):

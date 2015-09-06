@@ -56,9 +56,6 @@ class OpHDF5Cache(_Cache):
         if internal in self._file:
             del self._file[internal]
 
-        print(self.Input.meta)
-        print(self.Input.meta.dtype)
-
         self._ds = self._file.create_dataset(
             internal, shape=self.Input.meta.shape,
             dtype=self.Input.meta.dtype)
