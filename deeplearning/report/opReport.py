@@ -10,7 +10,7 @@ from deeplearning.tools.serialization import dumps
 from deeplearning.split import SplitTypes
 
 
-class OpReport(Operator):
+class OpRegressionReport(Operator):
     All = InputSlot(level=1)
     Description = InputSlot()
     WorkingDir = InputSlot()
@@ -30,8 +30,8 @@ class OpReport(Operator):
         assert len(self.All) == 2, "need prediction and ground truth"
         report = dict()
         mse_all, mse_test = self._getMSE()
-        report["MSE_all_data"] = mse_all
-        report["MSE_test_data"] = mse_test
+        report["all_MSE"] = mse_all
+        report["test_MSE"] = mse_test
 
         fn = os.path.join(self.WorkingDir.value, "report.json")
 
@@ -57,6 +57,37 @@ class OpReport(Operator):
         mse = _mse(prediction, expected)
         mse_test = _mse(prediction_test, expected_test)
         return mse, mse_test
+
+
+class OpClassificationReport(OpRegressionReport):
+    def execute(self, slot, subindex, roi, result):
+        assert len(self.All) == 2, "need prediction and ground truth"
+        report = dict()
+
+        prediction = np.argmax(self.All[0][...].wait(), axis=1)
+        expected = np.argmax(self.All[1][...].wait(), axis=1)
+        samples = self.Description.value == SplitTypes.TEST
+
+        for s, which in zip((samples, np.ones_like(samples)),
+                            ('test', 'all')):
+            p = prediction[s]
+            e = expected[s]
+            values, names = self._getReport(p, e)
+            for name, value in zip(names, values):
+                key = "{}_{}".format(which, name)
+                report[key] = value
+        fn = os.path.join(self.WorkingDir.value, "report.json")
+
+        with open(fn, 'w') as f:
+            f.write(dumps(report))
+            f.write("\n")
+
+        result[:] = True
+
+    def _getReport(self, prediction, expected):
+        f = (prediction != expected).sum()
+        t = (prediction == expected).sum()
+        return ((f, t), ("false", "true"))
 
 
 def _mse(a, b):

@@ -14,9 +14,11 @@ from deeplearning.classifiers import OpStateTrain
 from deeplearning.classifiers import OpStatePredict
 from deeplearning.classifiers import OpSVMTrain
 from deeplearning.classifiers import OpSVMPredict
+from deeplearning.classifiers import OpDeepTrain
+from deeplearning.classifiers import OpMLPPredict
 from deeplearning.data import OpPickleCache
 from deeplearning.data import OpHDF5Cache
-from deeplearning.report import OpReport
+from deeplearning.report import OpClassificationReport
 
 
 class OpSource(OpArrayPiperWithAccessCount):
@@ -46,13 +48,14 @@ class OpTarget(OpArrayPiperWithAccessCount):
         return op
 
     def setupOutputs(self):
-        self.Output.meta.shape = self.Input.meta.shape[0:1]
-        self.Output.meta.dtype = np.int
-        self.Output.meta.axistags = vigra.defaultAxistags('t')
+        self.Output.meta.shape = (self.Input.meta.shape[0], 2)
+        self.Output.meta.dtype = np.float
+        self.Output.meta.axistags = vigra.defaultAxistags('tc')
 
     def execute(self, slot, subindex, roi, result):
         idx = np.arange(roi.start[0], roi.stop[0])
-        result[:] = np.where(idx > 499, 1, 0)
+        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
+            result[:, i] = np.where(idx > 499, c, 1-c)
 
 
 config = {"class": Workflow,
@@ -65,7 +68,7 @@ config = {"class": Workflow,
           "classifierCache": {"class": OpPickleCache},
           "predict": {"class": OpStatePredict},
           "predictionCache": {"class": OpHDF5Cache},
-          "report": {"class": OpReport},}
+          "report": {"class": OpClassificationReport},}
 
 
 class TestWorkflow(unittest.TestCase):
@@ -86,6 +89,20 @@ class TestWorkflow(unittest.TestCase):
             c = config.copy()
             c["train"]["class"] = OpSVMTrain
             c["predict"]["class"] = OpSVMPredict
+            w = Workflow.build(c)
+            w.run()
+        except:
+            raise
+        finally:
+            shutil.rmtree(w._workingdir)
+
+    def testDNN(self):
+        try:
+            c = config.copy()
+            c["train"]["class"] = OpDeepTrain
+            c["train"]["num_hidden_layers"] = 2
+            c["train"]["size_hidden_layers"] = 5
+            c["predict"]["class"] = OpMLPPredict
             w = Workflow.build(c)
             w.run()
         except:

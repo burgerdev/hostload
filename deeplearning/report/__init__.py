@@ -1,1 +1,2 @@
-from .opReport import OpReport
+from .opReport import OpClassificationReport
+from .opReport import OpRegressionReport

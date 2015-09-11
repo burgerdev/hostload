@@ -1,5 +1,6 @@
 
 from functools import wraps
+import logging
 
 import numpy as np
 
@@ -7,7 +8,10 @@ from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
 
 from pylearn2.datasets import Dataset
+from pylearn2.space import CompositeSpace
 
+
+logger = logging.getLogger(__name__)
 
 def _assert_input_ready(method):
     """
@@ -23,6 +27,7 @@ def _assert_input_ready(method):
         return method(self, *args, **kwargs)
     return wrapped
 
+
 class OpDataset(Operator, Dataset):
     """
     converts an input slot to a pylearn2 dataset
@@ -33,19 +38,32 @@ class OpDataset(Operator, Dataset):
     Input = InputSlot(level=1)
     Output = OutputSlot(level=1)
 
+    slotNames = dict(features=0, targets=1)
+
     def __init__(self, *args, **kwargs):
-        super(OpDataset, self).__init__(*args, **kwargs)
+        Operator.__init__(self, *args, **kwargs)
         self.Output.connect(self.Input)
 
     def setupOutputs(self):
         self._num_examples = self.Input[0].meta.shape[0]
         assert self._num_examples == self.Input[1].meta.shape[0]
+        # self._setupDataset()
 
     def propagateDirty(self, slot, subindex, roi):
         self.Output.setDirty(roi)
 
     def execute(self, slot, subindex, roi, result):
         raise RuntimeError("should not reach this method")
+
+    def _setupDataset(self):
+        X = self.Input[0][...].wait()
+        c = self.Input[1][...].wait()
+        num_classes = c.max() + 1
+        y = np.zeros((len(c), num_classes))
+        for i in range(num_classes):
+            y[:, i] = c == i
+        
+        DenseDesignMatrix.__init__(self, X=X, y=y)
 
     # METHODS FOR DATASET
 
@@ -62,8 +80,13 @@ class OpDataset(Operator, Dataset):
         if mode is None:
             mode = "sequential"
 
-        assert mode == "sequential", "{} not implemented".format(mode)
-        assert rng is None, "rng handling not implemented"
+        if mode != "sequential":
+            msg = "mode '{}' not implemented".format(mode)
+            msg += ", defaulting to 'sequential'"
+            logger.warn(msg)
+
+        if rng is not None:
+            logger.warn("rng handling not implemented")
 
         n = int(self._num_examples)
 
@@ -76,26 +99,64 @@ class OpDataset(Operator, Dataset):
         else:
             num_batches = int(np.ceil(float(n)/batch_size))
 
+        data_types = self._getDataTypes(data_specs)
+
+        shapes = [tuple(s.meta.shape)[1:] for s in self.Input]
+
+        def _iter():
+            for b in range(num_batches):
+                left = b*batch_size
+                right = (b+1)*batch_size
+                right = min(right, n)
+
+                ret = []
+
+                for data_type in data_types:
+                    s = shapes[data_type]
+                    start = (left,) + (0,)*len(s)
+                    stop = (right,) + s
+                    new_roi = SubRegion(self.Input, start=start, stop=stop)
+                    X = self.Input[data_type].get(new_roi).wait()
+                    ret.append(X)
+
+                if return_tuple or len(ret) > 1:
+                    yield tuple(ret)
+                else:
+                    assert len(ret) == 1
+                    yield ret[0]
+
+        return _Iterator(batch_size, num_batches, self._num_examples,
+                         _iter())
+
+    def _getDataTypes(self, data_specs):
         # default data returned is 'features'
-        data_type = 0
+        data_types = (0,)
         if data_specs is not None:
             assert len(data_specs) == 2
-            if data_specs[1] == "target":
-                data_type = 1
-
-        s = tuple(self.Input[data_type].meta.shape)[1:]
-
-        for b in range(num_batches):
-            left = b*batch_size
-            right = (b+1)*batch_size
-            right = min(right, n)
-
-            start = (left,) + (0,)*len(s)
-            stop = (right,) + s
-            new_roi = SubRegion(self.Input, start=start, stop=stop)
-            X = self.Input[data_type].get(new_roi).wait()
-
-            if return_tuple:
-                yield (X,)
+            space = data_specs[0]
+            if isinstance(space, CompositeSpace):
+                data_types = map(lambda k: self.slotNames[k],
+                                 data_specs[1])
             else:
-                yield X
+                data_types = (self.slotNames[data_specs[1]],)
+
+        return data_types
+
+
+class _Iterator(object):
+
+    def __init__(self, batch_size, num_batches, num_examples, it):
+        self.batch_size = batch_size
+        self.num_batches = num_batches
+        self.num_examples = num_examples
+        self.uneven = True
+        self.fancy = False
+        self.stochastic = False
+
+        self._it = iter(it)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self._it.next()

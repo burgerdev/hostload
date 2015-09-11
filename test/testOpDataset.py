@@ -64,3 +64,5 @@ class TestOpDataset(unittest.TestCase):
         n = i.next()
         assert isinstance(n, tuple)
         np.testing.assert_equal(len(n), 1)
+
+        assert not i.stochastic
