@@ -20,13 +20,15 @@ class OpSVMTrain(OpTrain):
         valid = self.Valid[0][...].wait()
         X = np.concatenate((train, valid), axis=0)
 
-        assert len(self.Train[1].meta.shape) == 1,\
-            "target needs to be a vector"
-        assert len(self.Valid[1].meta.shape) == 1,\
-            "target needs to be a vector"
+        assert len(self.Train[1].meta.shape) == 2,\
+            "target needs to be a matrix"
+        assert len(self.Valid[1].meta.shape) == 2,\
+            "target needs to be a matrix"
         train = self.Train[1][...].wait()
         valid = self.Valid[1][...].wait()
         y = np.concatenate((train, valid), axis=0)
+
+        y = np.argmax(y, axis=1)
 
         svc = SVC()
         svc.fit(X, y)
@@ -46,4 +48,7 @@ class OpSVMPredict(OpPredict):
 
         svc = self.Classifier[...].wait()[0]
         assert isinstance(svc, SVC), "type was {}".format(type(svc))
-        result[:] = svc.predict(X)
+
+        classes = svc.predict(X)
+        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
+            result[:, i] = classes == c

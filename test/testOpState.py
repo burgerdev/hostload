@@ -14,16 +14,16 @@ class TestOpState(unittest.TestCase):
     def setUp(self):
         X = np.array([[1.2, 5], [2.2, 8], [3.1, 15], [3.9, 17]])
         X = vigra.taggedView(X, axistags='tc')
-        y = np.array([1, 2, 3, 4], dtype=np.int)
-        y = vigra.taggedView(y, axistags='t')
+        y = np.eye(4)
+        y = vigra.taggedView(y, axistags='tc')
 
         self.X = X
         self.y = y
 
         X = np.zeros((0, 2))
         X = vigra.taggedView(X, axistags='tc')
-        y = np.zeros((0,), dtype=np.int)
-        y = vigra.taggedView(y, axistags='t')
+        y = np.zeros((0, 4))
+        y = vigra.taggedView(y, axistags='tc')
 
         self.Xvalid = X
         self.yvalid = y
@@ -60,7 +60,8 @@ class TestOpState(unittest.TestCase):
         pred = OpStatePredict(graph=g)
         pred.Classifier.connect(op.Classifier)
         pred.Input.setValue(self.X)
+        pred.Target.connect(op.Train[1])
 
         res = pred.Output[...].wait()
         np.testing.assert_array_almost_equal(res,
-                                             self.y.view(np.ndarray))
+                                             np.eye(4, k=1))

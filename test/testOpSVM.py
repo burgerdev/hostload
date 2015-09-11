@@ -16,16 +16,16 @@ class TestOpSVM(unittest.TestCase):
     def setUp(self):
         X = np.array([[-1, -1], [-2, -1], [1, 1], [2, 1]])
         X = vigra.taggedView(X, axistags='tc')
-        y = np.array([1, 1, 2, 2], dtype=np.int)
-        y = vigra.taggedView(y, axistags='t')
+        y = np.array([[1, 0], [1, 0], [0, 1], [0, 1]])
+        y = vigra.taggedView(y, axistags='tc')
 
         self.X = X
         self.y = y
 
         X = np.zeros((0, 2))
         X = vigra.taggedView(X, axistags='tc')
-        y = np.zeros((0,), dtype=np.int)
-        y = vigra.taggedView(y, axistags='t')
+        y = np.zeros((0, 2))
+        y = vigra.taggedView(y, axistags='tc')
 
         self.Xvalid = X
         self.yvalid = y
@@ -62,6 +62,7 @@ class TestOpSVM(unittest.TestCase):
         pred = OpSVMPredict(graph=g)
         pred.Classifier.connect(op.Classifier)
         pred.Input.setValue(self.X)
+        pred.Target.connect(op.Train[1])
 
         res = pred.Output[...].wait()
         np.testing.assert_array_equal(res, self.y.view(np.ndarray))

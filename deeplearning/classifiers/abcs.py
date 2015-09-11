@@ -27,6 +27,7 @@ class OpTrain(Operator):
 class OpPredict(Operator):
     Input = InputSlot()
     Classifier = InputSlot()
+    Target = InputSlot()
 
     Output = OutputSlot()
 
@@ -37,14 +38,16 @@ class OpPredict(Operator):
 
     def setupOutputs(self):
         n = self.Input.meta.shape[0]
-        self.Output.meta.shape = (n,)
-        self.Output.meta.dtype = np.int
+        c = self.Target.meta.shape[1]
+        self.Output.meta.shape = (n, c)
+        self.Output.meta.dtype = np.float
 
     def propagateDirty(self, slot, subindex, roi):
         if slot == self.Classifier:
             self.Output.setDirty(slice(None))
         else:
+            c = self.Target.meta.shape[1]
             a = roi.start[0]
             b = roi.stop[0]
-            new_roi = SubRegion(self.Output, start=(a,), stop=(b,))
+            new_roi = SubRegion(self.Output, start=(a, c), stop=(b, c))
             self.Output.setDirty(new_roi)

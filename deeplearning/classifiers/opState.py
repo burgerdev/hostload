@@ -24,14 +24,14 @@ class OpStateTrain(OpTrain):
         X = np.concatenate((train, valid), axis=0)
         X = X.view(np.ndarray)
 
-        assert len(self.Train[1].meta.shape) == 1,\
-            "target needs to be a vector"
-        assert len(self.Valid[1].meta.shape) == 1,\
-            "target needs to be a vector"
+        assert len(self.Train[1].meta.shape) == 2,\
+            "target needs to be a matrix"
+        assert len(self.Valid[1].meta.shape) == 2,\
+            "target needs to be a matrix"
         train = self.Train[1][...].wait()
         valid = self.Valid[1][...].wait()
         y = np.concatenate((train, valid), axis=0)
-        y = y.view(np.ndarray)[:, np.newaxis]
+        y = np.argmax(y.view(np.ndarray), axis=1)[:, np.newaxis]
 
         sse = np.square(X-y).sum(axis=0)
         idx = np.argmin(sse)
@@ -55,4 +55,6 @@ class OpStatePredict(OpPredict):
         X = self.Input.get(new_roi).wait()
 
         idx = self.Classifier[...].wait()[0]
-        result[:] = np.round(X[:, idx]).astype(np.int)
+        classes = np.round(X[:, idx]).astype(np.int)
+        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
+            result[:, i] = classes == c
