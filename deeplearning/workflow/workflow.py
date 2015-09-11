@@ -67,6 +67,7 @@ class Workflow(object):
 
         predict.Classifier.connect(cc.Output)
         predict.Input.connect(split.All[0])
+        predict.Target.connect(split.Train[1])
 
         pc.Input.connect(predict.Output)
 
