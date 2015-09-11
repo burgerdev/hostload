@@ -16,7 +16,7 @@ class OpDiscretize(Operator):
         n = self.Input.meta.shape[0]
         l = self.NumLevels.value
         self.Output.meta.shape = (n, l)
-        self.Output.meta.dtype = np.bool
+        self.Output.meta.dtype = np.float
 
     def propagateDirty(self, slot, subindex, roi):
         # TODO
@@ -55,6 +55,4 @@ class OpClassFromOneHot(Operator):
         b = roi.stop[0]
 
         x = self.Input[a:b, :].wait()
-        c = x.shape[1]
-        f = np.arange(c)[np.newaxis, :]
-        result[:] = (x*f).sum(axis=1)
+        result[:] = np.argmax(x, axis=1)
