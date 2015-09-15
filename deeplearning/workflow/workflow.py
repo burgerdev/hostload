@@ -13,7 +13,10 @@ class Workflow(object):
         assert "class" in d and issubclass(Workflow, d["class"])
 
         if workingdir is None:
-            workingdir = tempfile.mkdtemp(prefix="deeplearning_")
+            if "workingdir" in d:
+                workingdir = d["workingdir"]
+            else:
+                workingdir = tempfile.mkdtemp(prefix="deeplearning_")
         w = Workflow(workingdir=workingdir)
 
         kwargs = dict(graph=w._graph)

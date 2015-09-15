@@ -1,4 +1,6 @@
 
+import logging
+from itertools import repeat
 
 from .abcs import OpTrain
 
@@ -16,6 +18,9 @@ from pylearn2.costs import ebm_estimation
 from pylearn2.datasets import transformer_dataset
 
 
+logger = logging.getLogger(__name__)
+
+
 class OpDeepTrain(OpTrain):
     @classmethod
     def build(cls, d, parent=None, graph=None, workingdir=None):
@@ -28,7 +33,7 @@ class OpDeepTrain(OpTrain):
 
         op._num_hidden_layers = d["num_hidden_layers"]
         op._size_hidden_layers = d["size_hidden_layers"]
-        
+
         return op
 
     def __init__(self, *args, **kwargs):
@@ -84,7 +89,9 @@ class OpDeepTrain(OpTrain):
             if not self._isPretrainable(layer):
                 continue
 
-            print("================= TRAINING UNSUPERVISED ===================")
+            logger.info("============ TRAINING UNSUPERVISED ============")
+            logger.info("============        Layer {}        ============"
+                        "".format(i))
 
             tc_a = termination_criteria.EpochCounter(500)
             tc_b = termination_criteria.MonitorBased(
@@ -107,8 +114,7 @@ class OpDeepTrain(OpTrain):
             tds = getTransform(self._layers[:i+1])
 
     def _trainAll(self):
-        
-        print("================= TRAINING SUPERVISED ===================")
+        logger.info("============ TRAINING SUPERVISED ============")
         nvis = self.Train[0].meta.shape[1]
         ds = self._opTrainData
         vds = self._opValidData
@@ -146,8 +152,14 @@ class OpDeepTrain(OpTrain):
         self._nn = nn
 
     def _getLayerSizeIterator(self):
+        try:
+            i = iter(self._size_hidden_layers)
+        except TypeError:
+            # layer size is a single integer
+            i = repeat(self._size_hidden_layers)
+
         while True:
-            yield self._size_hidden_layers
+            yield i.next()
 
     def _isPretrainable(self, layer):
         return isinstance(layer, rbm.GaussianBinaryRBM)

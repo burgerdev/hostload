@@ -27,6 +27,8 @@ class OpSource(OpArrayPiperWithAccessCount):
     def build(d, graph=None, parent=None, workingdir=None):
         assert "shape" in d
         data = np.linspace(0, 1, d["shape"][0])
+        np.random.seed(420)
+        data = data[np.random.permutation(len(data))]
         tags = "".join([t for s, t in zip(data.shape, 'txyzc')])
         data = vigra.taggedView(data, axistags=tags)
         op = OpSource(parent=parent, graph=graph)
@@ -49,14 +51,15 @@ class OpTarget(OpArrayPiperWithAccessCount):
         return op
 
     def setupOutputs(self):
+        assert len(self.Input.meta.shape) == 1
         self.Output.meta.shape = (self.Input.meta.shape[0], 2)
         self.Output.meta.dtype = np.float
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
 
     def execute(self, slot, subindex, roi, result):
-        idx = np.arange(roi.start[0], roi.stop[0])
+        data = self.Input[roi.start[0]:roi.stop[0]].wait()
         for i, c in enumerate(range(roi.start[1], roi.stop[1])):
-            result[:, i] = np.where(idx > 499, c, 1-c)
+            result[:, i] = np.where(data > .499, c, 1-c)
 
 
 config = {"class": Workflow,
@@ -69,7 +72,7 @@ config = {"class": Workflow,
           "classifierCache": {"class": OpPickleCache},
           "predict": {"class": OpStatePredict},
           "predictionCache": {"class": OpHDF5Cache},
-          "report": {"class": OpClassificationReport},}
+          "report": {"class": OpClassificationReport}}
 
 
 class TestWorkflow(unittest.TestCase):
@@ -102,7 +105,7 @@ class TestWorkflow(unittest.TestCase):
             c = config.copy()
             c["train"]["class"] = OpDeepTrain
             c["train"]["num_hidden_layers"] = 2
-            c["train"]["size_hidden_layers"] = 5
+            c["train"]["size_hidden_layers"] = (2, 2)
             c["predict"]["class"] = OpMLPPredict
             w = Workflow.build(c)
             with warnings.catch_warnings():
@@ -111,5 +114,5 @@ class TestWorkflow(unittest.TestCase):
         except:
             raise
         finally:
-            pass
+            print("wrote to {}".format(w._workingdir))
             # TODO remove temp dir
