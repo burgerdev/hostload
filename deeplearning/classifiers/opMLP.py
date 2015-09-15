@@ -1,4 +1,5 @@
 
+import numpy as np
 import theano
 
 from .abcs import OpPredict
@@ -12,6 +13,7 @@ class OpMLPPredict(OpPredict):
         b = roi.stop[0]
 
         inputs = self.Input[a:b, ...].wait()
+        inputs = inputs.astype(np.float32)
         shared = theano.shared(inputs, name='inputs')
         prediction = model.fprop(shared).eval()
 

@@ -13,6 +13,7 @@ from pylearn2.space import CompositeSpace
 
 logger = logging.getLogger(__name__)
 
+
 def _assert_input_ready(method):
     """
     wrapper for OpDataset methods to prevent usage before input is ready
@@ -54,16 +55,6 @@ class OpDataset(Operator, Dataset):
 
     def execute(self, slot, subindex, roi, result):
         raise RuntimeError("should not reach this method")
-
-    def _setupDataset(self):
-        X = self.Input[0][...].wait()
-        c = self.Input[1][...].wait()
-        num_classes = c.max() + 1
-        y = np.zeros((len(c), num_classes))
-        for i in range(num_classes):
-            y[:, i] = c == i
-        
-        DenseDesignMatrix.__init__(self, X=X, y=y)
 
     # METHODS FOR DATASET
 
@@ -117,6 +108,7 @@ class OpDataset(Operator, Dataset):
                     stop = (right,) + s
                     new_roi = SubRegion(self.Input, start=start, stop=stop)
                     X = self.Input[data_type].get(new_roi).wait()
+                    X = X.astype(np.float32)
                     ret.append(X)
 
                 if return_tuple or len(ret) > 1:
