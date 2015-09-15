@@ -1,4 +1,5 @@
 
+import warnings
 import unittest
 import shutil
 
@@ -104,7 +105,9 @@ class TestWorkflow(unittest.TestCase):
             c["train"]["size_hidden_layers"] = 5
             c["predict"]["class"] = OpMLPPredict
             w = Workflow.build(c)
-            w.run()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                w.run()
         except:
             raise
         finally:
