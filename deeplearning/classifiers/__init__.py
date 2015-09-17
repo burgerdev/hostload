@@ -3,4 +3,5 @@ from .opSVM import OpSVMPredict
 from .opState import OpStateTrain
 from .opState import OpStatePredict
 from .opDeep import OpDeepTrain
+from .opMLP import OpMLPTrain
 from .opMLP import OpMLPPredict
