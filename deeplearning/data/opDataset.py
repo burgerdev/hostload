@@ -9,6 +9,7 @@ from lazyflow.rtype import SubRegion
 
 from pylearn2.datasets import Dataset
 from pylearn2.space import CompositeSpace
+from pylearn2.utils.iteration import ShuffledSequentialSubsetIterator
 
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,21 @@ def _assert_input_ready(method):
         if not self.Input[0].ready() or not self.Input[1].ready():
             raise RuntimeError("input is not ready, "
                                "can't use dataset yet")
+        return method(self, *args, **kwargs)
+    return wrapped
+
+
+def _warn_if_unwise(method):
+    """
+    wrapper for OpDataset methods to prevent usage before input is ready
+    """
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        n = self.Input[0].meta.shape[0]
+        c = self.Input[0].meta.shape[0]
+        if n*c*4 > 1024**3:
+            msg = "requested non-lazy processing for large dataset"
+            logger.warn(msg)
         return method(self, *args, **kwargs)
     return wrapped
 
@@ -71,10 +87,24 @@ class OpDataset(Operator, Dataset):
         if mode is None:
             mode = "sequential"
 
-        if mode != "sequential":
+        supported_modes = {
+            "sequential": self._getSequentialIterator,
+            "shuffled_sequential": self._getShuffledSequentialIterator}
+
+        if mode not in supported_modes:
             msg = "mode '{}' not implemented".format(mode)
-            msg += ", defaulting to 'sequential'"
+            mode = "sequential"
+            msg += ", defaulting to '{}'".format(mode)
             logger.warn(msg)
+
+        return supported_modes[mode](batch_size=batch_size,
+                                     num_batches=num_batches,
+                                     rng=rng, data_specs=data_specs,
+                                     return_tuple=return_tuple)
+
+    def _getSequentialIterator(self, batch_size=None, num_batches=None,
+                               rng=None, data_specs=None,
+                               return_tuple=False):
 
         if rng is not None:
             logger.warn("rng handling not implemented")
@@ -119,6 +149,42 @@ class OpDataset(Operator, Dataset):
 
         return _Iterator(batch_size, num_batches, self._num_examples,
                          _iter())
+
+    @_warn_if_unwise
+    def _getShuffledSequentialIterator(self, batch_size=None,
+                                       num_batches=None,
+                                       rng=None, data_specs=None,
+                                       return_tuple=False):
+
+        X = self.Input[0][...].wait()
+        y = self.Input[1][...].wait()
+        data = (X, y)
+
+        index_iter = ShuffledSequentialSubsetIterator(
+            len(X), batch_size, num_batches, rng=rng)
+
+        data_types = self._getDataTypes(data_specs)
+
+        def _iter():
+            for indices in index_iter:
+
+                ret = []
+
+                for data_type in data_types:
+                    temp = data[data_type][indices, ...]
+                    temp = temp.astype(np.float32)
+                    ret.append(temp)
+
+                if return_tuple or len(ret) > 1:
+                    yield tuple(ret)
+                else:
+                    assert len(ret) == 1
+                    yield ret[0]
+
+        it = _Iterator(batch_size, num_batches, self._num_examples,
+                       _iter())
+        it.stochastic = True
+        return it
 
     def _getDataTypes(self, data_specs):
         # default data returned is 'features'
