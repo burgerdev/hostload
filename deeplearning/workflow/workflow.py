@@ -12,9 +12,21 @@ class Workflow(object):
     def build(d, workingdir=None):
         assert "class" in d and issubclass(Workflow, d["class"])
 
+        # we might delete keys, use a copy so that input is not changed
+        d = d.copy()
+
         if workingdir is None:
             if "workingdir" in d:
                 workingdir = d["workingdir"]
+                del d["workingdir"]
+                try:
+                    os.mkdir(workingdir)
+                except OSError as err:
+                    if "exists" in str(err):
+                        # that's fine
+                        pass
+                    else:
+                        raise
             else:
                 workingdir = tempfile.mkdtemp(prefix="deeplearning_")
         w = Workflow(workingdir=workingdir)
@@ -27,8 +39,17 @@ class Workflow(object):
             assert isinstance(key, str)
             attr = "_" + key
             assert not hasattr(w, attr)
+
             subdir = os.path.join(workingdir, key)
-            os.mkdir(subdir)
+            try:
+                os.mkdir(subdir)
+            except OSError as err:
+                if "exists" in str(err):
+                    # that's fine
+                    pass
+                else:
+                    raise
+
             kwargs["workingdir"] = subdir
             setattr(w, attr, d[key]["class"].build(d[key], **kwargs))
 
