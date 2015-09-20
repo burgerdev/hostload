@@ -1,10 +1,13 @@
 
+import logging
 import os
 import atexit
 import cPickle as pkl
 import h5py
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
+
+logger = logging.getLogger(__name__)
 
 
 class _Cache(Operator):
@@ -42,7 +45,10 @@ class OpPickleCache(_Cache):
         atexit.register(self._file.close)
 
     def cache(self, roi, result):
-        pkl.dump(result, self._file)
+        try:
+            pkl.dump(result, self._file)
+        except Exception as err:
+            logger.error("Could not dump object:\n\t{}".format(str(err)))
 
 class OpHDF5Cache(_Cache):
     def setupOutputs(self):
