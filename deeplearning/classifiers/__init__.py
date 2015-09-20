@@ -5,3 +5,5 @@ from .opState import OpStatePredict
 from .opDeep import OpDeepTrain
 from .opMLP import OpMLPTrain
 from .opMLP import OpMLPPredict
+from .opRF import OpRFTrain
+from .opRF import OpRFPredict
