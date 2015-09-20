@@ -51,7 +51,8 @@ class Workflow(object):
                     raise
 
             kwargs["workingdir"] = subdir
-            setattr(w, attr, d[key]["class"].build(d[key], **kwargs))
+            subdict = d[key]
+            setattr(w, attr, subdict["class"].build(subdict, **kwargs))
 
         w._initialize()
 
