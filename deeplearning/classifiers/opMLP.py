@@ -6,6 +6,8 @@ import numpy as np
 import theano
 
 from deeplearning.data import OpDataset
+from deeplearning.tools import Classification
+from deeplearning.tools import Regression
 
 from .abcs import OpTrain
 from .abcs import OpPredict
@@ -19,7 +21,7 @@ from pylearn2 import termination_criteria
 logger = logging.getLogger(__name__)
 
 
-class OpMLPTrain(OpTrain):
+class OpMLPTrain(OpTrain, Classification):
     @classmethod
     def build(cls, d, parent=None, graph=None, workingdir=None):
         """
@@ -107,7 +109,7 @@ class OpMLPTrain(OpTrain):
             yield i.next()
 
 
-class OpMLPPredict(OpPredict):
+class OpMLPPredict(OpPredict, Classification, Regression):
     def execute(self, slot, subregion, roi, result):
         model = self.Classifier.value
 

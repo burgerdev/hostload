@@ -6,8 +6,10 @@ from lazyflow.rtype import SubRegion
 from .abcs import OpTrain
 from .abcs import OpPredict
 
+from deeplearning.tools import Classification
 
-class OpStateTrain(OpTrain):
+
+class OpStateTrain(OpTrain, Classification):
     @staticmethod
     def build(d, graph=None, parent=None, workingdir=None):
         op = OpStateTrain(graph=graph, parent=parent)
@@ -39,7 +41,7 @@ class OpStateTrain(OpTrain):
         result[0] = idx
 
 
-class OpStatePredict(OpPredict):
+class OpStatePredict(OpPredict, Classification):
     @staticmethod
     def build(d, graph=None, parent=None, workingdir=None):
         op = OpStatePredict(graph=graph, parent=parent)

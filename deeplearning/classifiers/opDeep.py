@@ -5,15 +5,19 @@ from itertools import repeat
 from .abcs import OpTrain
 
 from deeplearning.data import OpDataset
+from deeplearning.tools import Classification
 
 from pylearn2.models import mlp
 from pylearn2.models import rbm
 from pylearn2.training_algorithms import sgd
 from pylearn2.training_algorithms import bgd
+from pylearn2.training_algorithms import learning_rule
+from pylearn2.train_extensions import best_params
 from pylearn2.energy_functions import rbm_energy
 from pylearn2 import termination_criteria
 from pylearn2 import blocks
 from pylearn2 import corruption
+from pylearn2 import train
 from pylearn2.costs import ebm_estimation
 from pylearn2.datasets import transformer_dataset
 
@@ -21,7 +25,7 @@ from pylearn2.datasets import transformer_dataset
 logger = logging.getLogger(__name__)
 
 
-class OpDeepTrain(OpTrain):
+class OpDeepTrain(OpTrain, Classification):
     @classmethod
     def build(cls, d, parent=None, graph=None, workingdir=None):
         """
@@ -61,9 +65,17 @@ class OpDeepTrain(OpTrain):
         layer_sizes = self._getLayerSizeIterator()
         for i in range(self._num_hidden_layers):
             nhid = layer_sizes.next()
+            """
             layer = rbm.GaussianBinaryRBM(rbm_energy.grbm_type_1(),
                                           nvis=nvis, nhid=nhid,
-                                          irange=.1)
+                                          irange=.1,
+                                          learn_sigma=True,
+                                          init_sigma=.1)
+            """
+            layer = rbm.RBM(nvis=nvis, nhid=nhid,
+                            irange=4, init_bias_hid=4,
+                            init_bias_vis=0,
+                            monitor_reconstruction=True)
             nvis = nhid
             layers.append(layer)
 
@@ -73,8 +85,10 @@ class OpDeepTrain(OpTrain):
         self._layers = layers
 
     def _pretrain(self):
-        corruptor = corruption.GaussianCorruptor(stdev=.4)
-        cost = ebm_estimation.SMD(corruptor=corruptor)
+        corruptor = corruption.GaussianCorruptor(stdev=.05)
+        # cost = ebm_estimation.SMD(corruptor=corruptor)
+        cost = ebm_estimation.CDk(1)
+        # cost = ebm_estimation.SML(10, 5)
 
         ds = self._opTrainData
 
@@ -93,23 +107,37 @@ class OpDeepTrain(OpTrain):
             logger.info("============        Layer {}        ============"
                         "".format(i))
 
-            tc_a = termination_criteria.EpochCounter(500)
-            tc_b = termination_criteria.MonitorBased(
-                channel_name="train_objective", prop_decrease=.01, N=20)
-            tc = termination_criteria.And((tc_a, tc_b))
-            trainer = sgd.SGD(learning_rate=.05, batch_size=10,
+            channel = "train_reconstruction_error"
+
+            lr = learning_rule.Momentum(init_momentum=.5)
+            lra = sgd.MonitorBasedLRAdjuster(channel_name=channel)
+            keep =  best_params.MonitorBasedSaveBest(
+                channel_name=channel, store_best_model=True)
+            ext = [lra, keep]
+
+            epochs = 200
+            tc = self._getTerminationCriteria(epochs=epochs, channel=channel)
+
+            trainer = sgd.SGD(learning_rate=.05, batch_size=50,
+                              learning_rule=lr,
                               termination_criterion=tc,
                               monitoring_dataset={'train': tds},
+                              monitor_iteration_mode="sequential",
+                              monitoring_batch_size=1000,
                               cost=cost,
                               seed=None,
                               train_iteration_mode='sequential')
-            trainer.setup(layer, tds)
-            while True:
-                trainer.train(dataset=tds)
-                layer.monitor.report_epoch()
-                layer.monitor()
-                if not trainer.continue_learning(layer):
-                    break
+
+            t = train.Train(dataset=tds, model=layer,
+                            algorithm=trainer,
+                            extensions=ext)
+            t.main_loop()
+
+            # set best parameters to layer
+            params = keep.best_model.get_param_values()
+            layer.set_param_values(params)
+            best_cost = keep.best_cost
+            logger.info("Restoring model with cost {}".format(best_cost))
 
             tds = getTransform(self._layers[:i+1])
 
@@ -119,14 +147,15 @@ class OpDeepTrain(OpTrain):
         ds = self._opTrainData
         vds = self._opValidData
 
-        tc_a = termination_criteria.EpochCounter(500)
-        tc_b = termination_criteria.MonitorBased(
-            channel_name="valid_objective", prop_decrease=.00, N=20)
-        tc = termination_criteria.And((tc_a, tc_b))
+        channel = "valid_output_misclass"
+        epochs = 200
+
+        tc = self._getTerminationCriteria(epochs=epochs, channel=channel)
 
         trainer = bgd.BGD(line_search_mode='exhaustive',
-                          batch_size=5000,
+                          batch_size=1000,
                           monitoring_dataset={'valid': vds},
+                          monitoring_batch_size=1000,
                           termination_criterion=tc,
                           seed=None)
 
@@ -151,6 +180,15 @@ class OpDeepTrain(OpTrain):
                 break
         self._nn = nn
 
+    def _getTerminationCriteria(self, epochs=None, channel=None):
+        tc = []
+        if epochs is not None:
+            tc.append(termination_criteria.EpochCounter(epochs))
+        if channel is not None:
+            tc.append(termination_criteria.MonitorBased(
+                channel_name=channel, prop_decrease=.00, N=20))
+        return termination_criteria.And(tc)
+
     def _getLayerSizeIterator(self):
         try:
             i = iter(self._size_hidden_layers)
@@ -162,4 +200,4 @@ class OpDeepTrain(OpTrain):
             yield i.next()
 
     def _isPretrainable(self, layer):
-        return isinstance(layer, rbm.GaussianBinaryRBM)
+        return isinstance(layer, rbm.RBM)

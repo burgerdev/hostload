@@ -114,5 +114,4 @@ class TestWorkflow(unittest.TestCase):
         except:
             raise
         finally:
-            print("wrote to {}".format(w._workingdir))
-            # TODO remove temp dir
+            shutil.rmtree(w._workingdir)

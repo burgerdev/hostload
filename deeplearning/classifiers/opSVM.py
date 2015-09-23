@@ -2,41 +2,46 @@
 import numpy as np
 
 from sklearn.svm import SVC
+from sklearn.svm import SVR
 
 from lazyflow.rtype import SubRegion
 
 from .abcs import OpTrain
 from .abcs import OpPredict
 
+from deeplearning.tools import Classification
+from deeplearning.tools import Regression
 
-class OpSVMTrain(OpTrain):
+
+class OpSVMTrain(OpTrain, Regression, Classification):
     def execute(self, slot, subindex, roi, result):
         assert len(self.Train) == 2, "need data and target"
         assert len(self.Valid) == 2, "need data and target"
         assert roi.start[0] == 0
         assert roi.stop[0] == 1
 
-        train = self.Train[0][...].wait()
-        valid = self.Valid[0][...].wait()
+        train = self.Train[0][...].wait().view(np.ndarray)
+        valid = self.Valid[0][...].wait().view(np.ndarray)
         X = np.concatenate((train, valid), axis=0)
 
-        assert len(self.Train[1].meta.shape) == 2,\
-            "target needs to be a matrix"
-        assert len(self.Valid[1].meta.shape) == 2,\
-            "target needs to be a matrix"
-        train = self.Train[1][...].wait()
-        valid = self.Valid[1][...].wait()
+        train = self.Train[1][...].wait().view(np.ndarray)
+        valid = self.Valid[1][...].wait().view(np.ndarray)
         y = np.concatenate((train, valid), axis=0)
 
-        y = np.argmax(y, axis=1)
+        if len(y.shape) == 1 or y.shape[1] == 1:
+            # use regression
+            y = y.squeeze()
+            model = SVR()
+        else:
+            # use classification
+            y = np.argmax(y, axis=1)
+            model = SVC()
 
-        svc = SVC()
-        svc.fit(X, y)
-
-        result[0] = svc
+        model.fit(X, y)
+        result[0] = model
 
 
-class OpSVMPredict(OpPredict):
+class OpSVMPredict(OpPredict, Regression, Classification):
     def execute(self, slot, subindex, roi, result):
         a = roi.start[0]
         b = roi.stop[0]
@@ -46,9 +51,15 @@ class OpSVMPredict(OpPredict):
         new_roi = SubRegion(self.Input, start=(a, c), stop=(b, d))
         X = self.Input.get(new_roi).wait()
 
-        svc = self.Classifier[...].wait()[0]
-        assert isinstance(svc, SVC), "type was {}".format(type(svc))
+        model = self.Classifier[...].wait()[0]
 
-        classes = svc.predict(X)
-        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
-            result[:, i] = classes == c
+        if isinstance(model, SVR):
+            result[:, 0] = model.predict(X)
+        elif isinstance(model, SVC):
+            classes = model.predict(X)
+            for i, c in enumerate(range(roi.start[1], roi.stop[1])):
+                result[:, i] = classes == c
+        else:
+            raise ValueError("incompatible model '{}'".format(type(model)))
+
+

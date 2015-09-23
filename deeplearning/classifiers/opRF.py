@@ -4,11 +4,13 @@ import numpy as np
 from .abcs import OpTrain
 from .abcs import OpPredict
 
+from deeplearning.tools import Classification
+
 from lazyflow.classifiers import VigraRfLazyflowClassifierFactory
 from lazyflow.classifiers import VigraRfLazyflowClassifier
 from lazyflow.rtype import SubRegion
 
-class OpRFTrain(OpTrain):
+class OpRFTrain(OpTrain, Classification):
     @classmethod
     def build(cls, d, parent=None, graph=None, workingdir=None):
         op = cls(parent=parent, graph=graph)
@@ -39,7 +41,7 @@ class OpRFTrain(OpTrain):
         result[0] = classifier
 
 
-class OpRFPredict(OpPredict):
+class OpRFPredict(OpPredict, Classification):
     def execute(self, slot, subindex, roi, result):
         a = roi.start[0]
         b = roi.stop[0]

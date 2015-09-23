@@ -5,8 +5,10 @@ import vigra
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
 
+from deeplearning.tools import Regression
 
-class OpExponentiallySegmentedPattern(Operator):
+
+class OpExponentiallySegmentedPattern(Operator, Regression):
     Input = InputSlot()
     BaselineSize = InputSlot(value=60)
     NumSegments = InputSlot(value=4)
@@ -14,8 +16,10 @@ class OpExponentiallySegmentedPattern(Operator):
     Output = OutputSlot()
 
     def setupOutputs(self):
-        n = self.NumSegments.value
-        self.Output.meta.shape = (self.Input.meta.shape[0], n)
+        assert len(self.Input.meta.shape) == 1, "input is expected to be 1D"
+        num_examples = self.Input.meta.shape[0]
+        num_segments = self.NumSegments.value
+        self.Output.meta.shape = (num_examples, num_segments)
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
         self.Output.meta.dtype = np.float32
 
