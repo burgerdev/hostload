@@ -22,6 +22,7 @@ from deeplearning.classifiers import OpDeepTrain
 from deeplearning.data import OpPickleCache
 from deeplearning.data import OpHDF5Cache
 from deeplearning.report import OpClassificationReport
+from deeplearning.tools import Classification
 
 from pylearn2.models.mlp import Sigmoid
 from pylearn2.models.mlp import RectifiedLinear
@@ -53,7 +54,7 @@ class OpFeatures(OpReorderAxes):
         return op
 
 
-class OpTarget(OpArrayPiperWithAccessCount):
+class OpTarget(OpArrayPiperWithAccessCount, Classification):
     @staticmethod
     def build(d, graph=None, parent=None, workingdir=None):
         op = OpTarget(parent=parent, graph=graph)

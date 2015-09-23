@@ -20,6 +20,7 @@ from deeplearning.classifiers import OpMLPPredict
 from deeplearning.data import OpPickleCache
 from deeplearning.data import OpHDF5Cache
 from deeplearning.report import OpClassificationReport
+from deeplearning.tools import Classification
 
 
 class OpSource(OpArrayPiperWithAccessCount):
@@ -44,7 +45,7 @@ class OpFeatures(OpReorderAxes):
         return op
 
 
-class OpTarget(OpArrayPiperWithAccessCount):
+class OpTarget(OpArrayPiperWithAccessCount, Classification):
     @staticmethod
     def build(d, graph=None, parent=None, workingdir=None):
         op = OpTarget(parent=parent, graph=graph)
@@ -86,7 +87,9 @@ class TestWorkflow(unittest.TestCase):
         except:
             raise
         finally:
-            shutil.rmtree(w._workingdir)
+            l = locals()
+            if "w" in l:
+                shutil.rmtree(w._workingdir)
 
     def testSVM(self):
         try:
@@ -98,7 +101,9 @@ class TestWorkflow(unittest.TestCase):
         except:
             raise
         finally:
-            shutil.rmtree(w._workingdir)
+            l = locals()
+            if "w" in l:
+                shutil.rmtree(w._workingdir)
 
     def testDNN(self):
         try:
@@ -114,4 +119,6 @@ class TestWorkflow(unittest.TestCase):
         except:
             raise
         finally:
-            shutil.rmtree(w._workingdir)
+            l = locals()
+            if "w" in l:
+                shutil.rmtree(w._workingdir)

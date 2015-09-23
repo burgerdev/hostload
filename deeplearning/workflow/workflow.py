@@ -5,6 +5,9 @@ import os
 from lazyflow.graph import Graph
 
 from deeplearning.tools.serialization import dumps
+from deeplearning.tools import Classification
+from deeplearning.tools import Regression
+from deeplearning.tools import IncompatibleTargets
 
 
 class Workflow(object):
@@ -58,6 +61,8 @@ class Workflow(object):
 
         w._writeConfig(d)
 
+        w._sanity_check()
+
         return w
 
     def __init__(self, workingdir=None):
@@ -100,6 +105,21 @@ class Workflow(object):
         report.All[0].connect(pc.Output)
         report.All[1].connect(target.Output)
         report.Description.connect(split.Description)
+
+    def _sanity_check(self):
+        if isinstance(self._target, Classification):
+            t = Classification
+        elif isinstance(self._target, Regression):
+            t = Regression
+        else:
+            raise IncompatibleTargets("unkown target type")
+
+        if not isinstance(self._train, t):
+            raise IncompatibleTargets("incompatible training type")
+        if not isinstance(self._predict, t):
+            raise IncompatibleTargets("incompatible prediction type")
+        if not isinstance(self._report, t):
+            raise IncompatibleTargets("incompatible report type")
 
     def _writeConfig(self, d):
         s = dumps(d, indent=4, sort_keys=True)
