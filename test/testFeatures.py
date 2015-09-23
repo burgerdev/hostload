@@ -10,6 +10,7 @@ from deeplearning.features import OpRawWindowed
 from deeplearning.features import OpMean
 from deeplearning.features import OpLinearWeightedMean
 from deeplearning.features import OpFairness
+from deeplearning.features import OpRecent
 
 
 class TestOpMean(unittest.TestCase):
@@ -18,7 +19,6 @@ class TestOpMean(unittest.TestCase):
         x = np.asarray([5, 7, 3, 4, 10, 2, 3])
         x = vigra.taggedView(x, axistags='t')
         self.data = x
-        
 
     def testSimple(self):
 
@@ -68,4 +68,29 @@ class TestOpRawWindowed(TestOpMean):
     def getOp(self):
         op = OpRawWindowed(graph=Graph())
         exp = np.asarray([5, 7, 3, 4, 10, 2, 3])
+        return op, exp
+
+
+class TestOpRecent(TestOpMean):
+    def testSimple(self):
+
+        op, exp = self.getOp()
+        op.Input.setValue(self.data)
+        op.WindowSize.setValue(self.window_size)
+
+        y = op.Output[...].wait()
+        np.testing.assert_array_equal(y.shape, (7, 3))
+
+        np.testing.assert_array_almost_equal(y, exp)
+
+        y = op.Output[1:4, 0:1].wait()
+        np.testing.assert_array_equal(y.shape, (3, 1))
+
+        np.testing.assert_array_almost_equal(y, exp[1:4, 0:1])
+
+    def getOp(self):
+        op = OpRecent(graph=Graph())
+        exp = np.asarray([[5, 7, 3, 4, 10, 2, 3],
+                          [5, 5, 7, 3, 4, 10, 2],
+                          [5, 5, 5, 7, 3, 4, 10]]).T
         return op, exp
