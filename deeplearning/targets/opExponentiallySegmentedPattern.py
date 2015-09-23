@@ -15,6 +15,13 @@ class OpExponentiallySegmentedPattern(Operator, Regression):
 
     Output = OutputSlot()
 
+    @classmethod
+    def build(cls, d, parent=None, graph=None, workingdir=None):
+        op = cls(parent=parent, graph=graph)
+        op.BaselineSize.setValue(d["baseline_size"])
+        op.NumSegments.setValue(d["num_segments"])
+        return op
+
     def setupOutputs(self):
         assert len(self.Input.meta.shape) == 1, "input is expected to be 1D"
         num_examples = self.Input.meta.shape[0]

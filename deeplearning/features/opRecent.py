@@ -12,6 +12,12 @@ class OpRecent(Operator):
 
     Output = OutputSlot()
 
+    @classmethod
+    def build(cls, d, parent=None, graph=None, workingdir=None):
+        op = cls(parent=parent, graph=graph)
+        op.WindowSize.setValue(d["window_size"])
+        return op
+
     def setupOutputs(self):
         window = self.WindowSize.value
         self.Output.meta.shape = (self.Input.meta.shape[0], window)
