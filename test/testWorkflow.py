@@ -2,6 +2,7 @@
 import warnings
 import unittest
 import shutil
+import tempfile
 
 import numpy as np
 import vigra
@@ -16,11 +17,17 @@ from deeplearning.classifiers import OpStatePredict
 from deeplearning.classifiers import OpSVMTrain
 from deeplearning.classifiers import OpSVMPredict
 from deeplearning.classifiers import OpDeepTrain
+from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
 from deeplearning.data import OpPickleCache
 from deeplearning.data import OpHDF5Cache
 from deeplearning.report import OpClassificationReport
+from deeplearning.report import OpRegressionReport
 from deeplearning.tools import Classification
+from deeplearning.tools import Regression
+from deeplearning.tools import IncompatibleTargets
+
+from pylearn2.models import mlp
 
 
 class OpSource(OpArrayPiperWithAccessCount):
@@ -81,44 +88,128 @@ class TestWorkflow(unittest.TestCase):
         pass
 
     def testBasic(self):
+        d = tempfile.mkdtemp()
         try:
-            w = Workflow.build(config)
+            w = Workflow.build(config, workingdir=d)
             w.run()
         except:
             raise
         finally:
-            l = locals()
-            if "w" in l:
-                shutil.rmtree(w._workingdir)
+            shutil.rmtree(d)
+
+    def testIncompatible(self):
+        d = tempfile.mkdtemp()
+        c = config.copy()
+        c["target"] = {"class": OpRegTarget}
+        import pprint
+        pprint.pprint(c)
+        try:
+            with self.assertRaises(IncompatibleTargets):
+                Workflow.build(c, workingdir=d)
+        except:
+            raise
+        finally:
+            shutil.rmtree(d)
 
     def testSVM(self):
+        d = tempfile.mkdtemp()
         try:
             c = config.copy()
-            c["train"]["class"] = OpSVMTrain
-            c["predict"]["class"] = OpSVMPredict
-            w = Workflow.build(c)
+            c["train"] = {"class": OpSVMTrain}
+            c["predict"] = {"class": OpSVMPredict}
+            w = Workflow.build(c, workingdir=d)
             w.run()
         except:
             raise
         finally:
-            l = locals()
-            if "w" in l:
-                shutil.rmtree(w._workingdir)
+            shutil.rmtree(d)
 
     def testDNN(self):
+        d = tempfile.mkdtemp()
         try:
             c = config.copy()
-            c["train"]["class"] = OpDeepTrain
-            c["train"]["num_hidden_layers"] = 2
-            c["train"]["size_hidden_layers"] = (2, 2)
-            c["predict"]["class"] = OpMLPPredict
-            w = Workflow.build(c)
+            c["train"] = {"class": OpDeepTrain,
+                          "num_hidden_layers": 2,
+                          "size_hidden_layers": (2, 2)}
+            c["predict"] = {"class": OpMLPPredict}
+            w = Workflow.build(c, workingdir=d)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 w.run()
         except:
             raise
         finally:
-            l = locals()
-            if "w" in l:
-                shutil.rmtree(w._workingdir)
+            shutil.rmtree(d)
+
+    def testMLP(self):
+        d = tempfile.mkdtemp()
+        try:
+            c = config.copy()
+            c["train"] = {"class": OpMLPTrain,
+                          "layer_classes": (mlp.Sigmoid,),
+                          "layer_sizes": (5,)}
+            c["predict"] = {"class": OpMLPPredict}
+            w = Workflow.build(c, workingdir=d)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                w.run()
+        except:
+            raise
+        finally:
+            import sys
+            sys.stderr.write("testMLP: {}\n".format(d))
+            # TODO remove dir
+            # shutil.rmtree(d)
+
+    def testMLPReg(self):
+        d = tempfile.mkdtemp()
+        try:
+            c = config.copy()
+            c["train"] = {"class": OpMLPTrain,
+                          "layer_classes": (mlp.Sigmoid,),
+                          "layer_sizes": (5,)}
+            c["predict"] = {"class": OpMLPPredict}
+            c["source"] = {"class": OpRegSource,
+                           "shape": (1000,)}
+            c["target"] = {"class": OpRegTarget}
+            c["report"] = {"class": OpRegressionReport, "levels": 10}
+            w = Workflow.build(c, workingdir=d)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                w.run()
+        except:
+            raise
+        finally:
+            import sys
+            sys.stderr.write("testMLPReg: {}\n".format(d))
+            # TODO remove dir
+            # shutil.rmtree(d)
+
+
+class OpRegSource(OpArrayPiperWithAccessCount):
+    @staticmethod
+    def build(d, graph=None, parent=None, workingdir=None):
+        assert "shape" in d
+        data = np.linspace(0, 1, d["shape"][0])
+        tags = "".join([t for s, t in zip(data.shape, 'txyzc')])
+        data = vigra.taggedView(data, axistags=tags)
+        op = OpSource(parent=parent, graph=graph)
+        op.Input.setValue(data)
+        return op
+
+
+class OpRegTarget(OpArrayPiperWithAccessCount, Regression):
+    @staticmethod
+    def build(d, graph=None, parent=None, workingdir=None):
+        op = OpRegTarget(parent=parent, graph=graph)
+        return op
+
+    def setupOutputs(self):
+        assert len(self.Input.meta.shape) == 1
+        self.Output.meta.shape = (self.Input.meta.shape[0], 1)
+        self.Output.meta.dtype = np.float
+        self.Output.meta.axistags = vigra.defaultAxistags('tc')
+
+    def execute(self, slot, subindex, roi, result):
+        data = self.Input[roi.start[0]:roi.stop[0]].wait()
+        result[:, 0] = 1 - data

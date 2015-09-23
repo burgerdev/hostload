@@ -43,6 +43,7 @@ class OpRegressionReport(_OpReport, Regression):
         op = cls(parent=parent, graph=graph)
         op.WorkingDir.setValue(workingdir)
         op.Levels.setValue(my_d["levels"])
+        return op
 
     def execute(self, slot, subindex, roi, result):
         assert len(self.All) == 2, "need prediction and ground truth"

@@ -14,14 +14,13 @@ from .abcs import OpPredict
 
 
 from pylearn2.models import mlp
-from pylearn2.models import rbm
 from pylearn2.training_algorithms import bgd
 from pylearn2 import termination_criteria
 
 logger = logging.getLogger(__name__)
 
 
-class OpMLPTrain(OpTrain, Classification):
+class OpMLPTrain(OpTrain, Classification, Regression):
     @classmethod
     def build(cls, d, parent=None, graph=None, workingdir=None):
         """
@@ -65,19 +64,36 @@ class OpMLPTrain(OpTrain, Classification):
             layers.append(layer)
 
         n_out = self.Train[1].meta.shape[1]
-        output = mlp.Softmax(n_out, 'output', irange=.1)
+
+        if n_out == 1:
+            # set up for regression
+            output = mlp.Linear(n_out, 'output', irange=.1)
+            self._regression = True
+        else:
+            # set up for classification
+            output = mlp.Softmax(n_out, 'output', irange=.1)
+            self._regression = False
         layers.append(output)
         self._nn = mlp.MLP(layers=layers, nvis=nvis)
 
+        if self._regression:
+            # try to initialize weights smartly
+            w = np.ones((nhid, 1), dtype=np.float32)/nhid
+            output.set_weights(w)
+
     def _train(self):
         logger.info("============ TRAINING SUPERVISED ============")
-        nvis = self.Train[0].meta.shape[1]
         ds = self._opTrainData
         vds = self._opValidData
 
+        if self._regression:
+            channel = "valid_objective"
+        else:
+            channel = "valid_output_misclass"
+
         tc_a = termination_criteria.EpochCounter(500)
         tc_b = termination_criteria.MonitorBased(
-            channel_name="valid_output_misclass",
+            channel_name=channel,
             prop_decrease=.00, N=20)
         tc = termination_criteria.And((tc_a, tc_b))
 

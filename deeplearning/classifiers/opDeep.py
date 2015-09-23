@@ -85,7 +85,7 @@ class OpDeepTrain(OpTrain, Classification):
         self._layers = layers
 
     def _pretrain(self):
-        corruptor = corruption.GaussianCorruptor(stdev=.05)
+        # corruptor = corruption.GaussianCorruptor(stdev=.05)
         # cost = ebm_estimation.SMD(corruptor=corruptor)
         cost = ebm_estimation.CDk(1)
         # cost = ebm_estimation.SML(10, 5)
