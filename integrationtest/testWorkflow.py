@@ -156,10 +156,7 @@ class TestWorkflow(unittest.TestCase):
         except:
             raise
         finally:
-            import sys
-            sys.stderr.write("testMLP: {}\n".format(d))
-            # TODO remove dir
-            # shutil.rmtree(d)
+            shutil.rmtree(d)
 
     def testMLPReg(self):
         d = tempfile.mkdtemp()
@@ -180,10 +177,7 @@ class TestWorkflow(unittest.TestCase):
         except:
             raise
         finally:
-            import sys
-            sys.stderr.write("testMLPReg: {}\n".format(d))
-            # TODO remove dir
-            # shutil.rmtree(d)
+            shutil.rmtree(d)
 
 
 class OpRegSource(OpArrayPiperWithAccessCount):
