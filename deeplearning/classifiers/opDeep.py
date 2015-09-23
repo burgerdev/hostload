@@ -111,12 +111,12 @@ class OpDeepTrain(OpTrain, Classification):
 
             lr = learning_rule.Momentum(init_momentum=.5)
             lra = sgd.MonitorBasedLRAdjuster(channel_name=channel)
-            keep =  best_params.MonitorBasedSaveBest(
+            keep = best_params.MonitorBasedSaveBest(
                 channel_name=channel, store_best_model=True)
             ext = [lra, keep]
 
             epochs = 200
-            tc = self._getTerminationCriteria(epochs=epochs, channel=channel)
+            tc = getTerminationCriteria(epochs=epochs, channel=channel)
 
             trainer = sgd.SGD(learning_rate=.05, batch_size=50,
                               learning_rule=lr,
@@ -180,15 +180,6 @@ class OpDeepTrain(OpTrain, Classification):
                 break
         self._nn = nn
 
-    def _getTerminationCriteria(self, epochs=None, channel=None):
-        tc = []
-        if epochs is not None:
-            tc.append(termination_criteria.EpochCounter(epochs))
-        if channel is not None:
-            tc.append(termination_criteria.MonitorBased(
-                channel_name=channel, prop_decrease=.00, N=20))
-        return termination_criteria.And(tc)
-
     def _getLayerSizeIterator(self):
         try:
             i = iter(self._size_hidden_layers)
@@ -201,3 +192,13 @@ class OpDeepTrain(OpTrain, Classification):
 
     def _isPretrainable(self, layer):
         return isinstance(layer, rbm.RBM)
+
+
+def getTerminationCriteria(epochs=None, channel=None):
+    tc = []
+    if epochs is not None:
+        tc.append(termination_criteria.EpochCounter(epochs))
+    if channel is not None:
+        tc.append(termination_criteria.MonitorBased(
+            channel_name=channel, prop_decrease=.00, N=20))
+    return termination_criteria.And(tc)

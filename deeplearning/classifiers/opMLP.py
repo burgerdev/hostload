@@ -12,10 +12,13 @@ from deeplearning.tools import Regression
 from .abcs import OpTrain
 from .abcs import OpPredict
 
+from .opDeep import getTerminationCriteria
+
 
 from pylearn2.models import mlp
 from pylearn2.training_algorithms import bgd
-from pylearn2 import termination_criteria
+from pylearn2 import train
+from pylearn2.train_extensions import best_params
 
 logger = logging.getLogger(__name__)
 
@@ -91,11 +94,9 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         else:
             channel = "valid_output_misclass"
 
-        tc_a = termination_criteria.EpochCounter(500)
-        tc_b = termination_criteria.MonitorBased(
-            channel_name=channel,
-            prop_decrease=.00, N=20)
-        tc = termination_criteria.And((tc_a, tc_b))
+        tc = getTerminationCriteria(epochs=200, channel=channel)
+        keep = best_params.MonitorBasedSaveBest(
+            channel_name=channel, store_best_model=True)
 
         trainer = bgd.BGD(line_search_mode='exhaustive',
                           batch_size=1000,
@@ -106,13 +107,16 @@ class OpMLPTrain(OpTrain, Classification, Regression):
 
         nn = self._nn
 
-        trainer.setup(nn, ds)
-        while True:
-            trainer.train(dataset=ds)
-            nn.monitor.report_epoch()
-            nn.monitor()
-            if not trainer.continue_learning(nn):
-                break
+        t = train.Train(dataset=ds, model=nn,
+                        algorithm=trainer,
+                        extensions=[keep])
+        t.main_loop()
+
+        # set best parameters to layer
+        params = keep.best_model.get_param_values()
+        nn.set_param_values(params)
+        best_cost = keep.best_cost
+        logger.info("Restoring model with cost {}".format(best_cost))
 
     def _getLayerSizeIterator(self):
         try:

@@ -3,7 +3,9 @@ import logging
 import os
 import atexit
 import cPickle as pkl
+
 import h5py
+import numpy as np
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 
@@ -36,6 +38,7 @@ class _Cache(Operator):
     def cache(self, roi, result):
         pass
 
+
 class OpPickleCache(_Cache):
     def setupOutputs(self):
         super(OpPickleCache, self).setupOutputs()
@@ -43,12 +46,30 @@ class OpPickleCache(_Cache):
         fn = os.path.join(self.WorkingDir.value, basename)
         self._file = open(fn, "w")
         atexit.register(self._file.close)
+        self._cached = False
+
+    def propagateDirty(self, slot, subindex, roi):
+        self._cached = False
+        self.Output.setDirty(roi)
+
+    def execute(self, slot, subindex, roi, result):
+        if not self._cached:
+            req = self.Input.get(roi)
+            req.writeInto(result)
+            req.block()
+            self.cache(roi, result)
+            self._cached = True
+            self._payload = np.zeros_like(result)
+            self._payload[:] = result[:]
+        else:
+            result[:] = self._payload[:]
 
     def cache(self, roi, result):
         try:
             pkl.dump(result, self._file)
         except Exception as err:
             logger.error("Could not dump object:\n\t{}".format(str(err)))
+
 
 class OpHDF5Cache(_Cache):
     def setupOutputs(self):
@@ -67,5 +88,6 @@ class OpHDF5Cache(_Cache):
             dtype=self.Input.meta.dtype)
 
     def cache(self, roi, result):
+        # TODO provide cached result if available
         s = roi.toSlice()
         self._ds[s] = result
