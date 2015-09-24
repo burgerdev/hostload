@@ -22,6 +22,7 @@ class OpHostloadTarget(Operator):
         op = cls(parent=parent, graph=graph)
         op.NumLevels.setValue(d["num_levels"])
         op.WindowSize.setValue(d["window_size"])
+        return op
 
     def __init__(self, *args, **kwargs):
         super(OpHostloadTarget, self).__init__(*args, **kwargs)
@@ -47,4 +48,5 @@ class OpHostloadTarget(Operator):
         pass
 
     def execute(self, slot, subindex, roi, result):
-        raise RuntimeError("internal connections are set up wrongly")
+        # can't be reached because of internal connections
+        raise NotImplementedError()

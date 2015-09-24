@@ -16,7 +16,7 @@ from lazyflow.operators.generic import OpMultiArrayStacker
 from lazyflow.operators.valueProviders import OpValueCache
 
 from deeplearning.targets import OpExponentiallySegmentedPattern
-from deeplearning.targets import OpNormalize
+from deeplearning.tools.generic import OpNormalize
 from deeplearning.targets import OpDiscretize
 from deeplearning.targets import OpClassFromOneHot
 

@@ -45,9 +45,11 @@ class OpPredict(Operator):
     def propagateDirty(self, slot, subindex, roi):
         if slot == self.Classifier:
             self.Output.setDirty(slice(None))
-        else:
+        elif slot == self.Input:
             c = self.Target.meta.shape[1]
             a = roi.start[0]
             b = roi.stop[0]
             new_roi = SubRegion(self.Output, start=(a, c), stop=(b, c))
             self.Output.setDirty(new_roi)
+        # don't need to handle self.Target because we need it just for
+        # Target.meta.shape

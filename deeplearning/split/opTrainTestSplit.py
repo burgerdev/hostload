@@ -59,10 +59,7 @@ class OpTrainTestSplit(Operator):
             train_shape = (size_t_train - size_t_valid,) + shape_rem
 
             for slot in (self.Train, self.Valid, self.Test, self.All):
-                if slot.level > 0:
-                    slot[subindex].meta.assignFrom(subslot.meta)
-                else:
-                    slot.meta.assignFrom(subslot.meta)
+                slot[subindex].meta.assignFrom(subslot.meta)
 
             self.Train[subindex].meta.shape = train_shape
             self.Valid[subindex].meta.shape = valid_shape

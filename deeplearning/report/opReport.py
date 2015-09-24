@@ -72,9 +72,9 @@ class OpRegressionReport(_OpReport, Regression):
         report["all_MSE"] = _mse(prediction, expected)
         report["test_MSE"] = _mse(prediction_test, expected_test)
 
-        report["all_Misclass"] = _misclass_from_regression(prediction, expected,
+        report["all_misclass"] = _misclass_from_regression(prediction, expected,
                                                            levels)
-        report["test_Misclass"] = _misclass_from_regression(prediction_test,
+        report["test_misclass"] = _misclass_from_regression(prediction_test,
                                                             expected_test,
                                                             levels)
 

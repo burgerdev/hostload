@@ -1,5 +1,4 @@
 from .opExponentiallySegmentedPattern import OpExponentiallySegmentedPattern
-from .opExponentiallySegmentedPattern import OpNormalize
 from .opDiscretize import OpDiscretize
 from .opDiscretize import OpClassFromOneHot
 from .opHostloadTarget import OpHostloadTarget

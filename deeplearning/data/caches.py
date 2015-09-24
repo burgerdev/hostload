@@ -36,21 +36,19 @@ class _Cache(Operator):
         self.Output.setDirty(roi)
 
     def cache(self, roi, result):
-        pass
+        raise NotImplementedError()
 
 
 class OpPickleCache(_Cache):
     def setupOutputs(self):
         super(OpPickleCache, self).setupOutputs()
         basename = self.name + ".pkl"
-        fn = os.path.join(self.WorkingDir.value, basename)
-        self._file = open(fn, "w")
-        atexit.register(self._file.close)
+        self._filename = os.path.join(self.WorkingDir.value, basename)
         self._cached = False
 
     def propagateDirty(self, slot, subindex, roi):
         self._cached = False
-        self.Output.setDirty(roi)
+        super(OpPickleCache, self).propagateDirty(slot, subindex, roi)
 
     def execute(self, slot, subindex, roi, result):
         if not self._cached:
@@ -65,29 +63,32 @@ class OpPickleCache(_Cache):
             result[:] = self._payload[:]
 
     def cache(self, roi, result):
-        try:
-            pkl.dump(result, self._file)
-        except Exception as err:
-            logger.error("Could not dump object:\n\t{}".format(str(err)))
+        with open(self._filename, "w") as f:
+            try:
+                pkl.dump(result, f)
+            except Exception as err:
+                logger.error("Could not dump object:\n\t{}".format(str(err)))
 
 
 class OpHDF5Cache(_Cache):
     def setupOutputs(self):
         super(OpHDF5Cache, self).setupOutputs()
         basename = self.name + ".h5"
-        internal = "data"
-        fn = os.path.join(self.WorkingDir.value, basename)
-        self._file = h5py.File(fn, "w")
-        atexit.register(self._file.close)
+        self._filename = os.path.join(self.WorkingDir.value, basename)
+        self._internal = "data"
 
-        if internal in self._file:
-            del self._file[internal]
+    def _getDataset(self, f):
+        if self._internal in f:
+            del f[internal]
 
-        self._ds = self._file.create_dataset(
-            internal, shape=self.Input.meta.shape,
+        ds = f.create_dataset(
+            self._internal, shape=self.Input.meta.shape,
             dtype=self.Input.meta.dtype)
+        return ds
 
     def cache(self, roi, result):
         # TODO provide cached result if available
-        s = roi.toSlice()
-        self._ds[s] = result
+        with h5py.File(self._filename, "w") as f:
+            ds = self._getDataset(f)
+            s = roi.toSlice()
+            ds[s] = result

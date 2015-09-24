@@ -150,7 +150,7 @@ class OpDeepTrain(OpTrain, Classification):
         channel = "valid_output_misclass"
         epochs = 200
 
-        tc = self._getTerminationCriteria(epochs=epochs, channel=channel)
+        tc = getTerminationCriteria(epochs=epochs, channel=channel)
 
         trainer = bgd.BGD(line_search_mode='exhaustive',
                           batch_size=1000,

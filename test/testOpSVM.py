@@ -32,7 +32,7 @@ class TestOpSVM(unittest.TestCase):
         self.yvalid = y
 
     def testTrain(self):
-        op = OpSVMTrain(graph=Graph())
+        op = OpSVMTrain.build(dict(), graph=Graph())
 
         op.Train.resize(2)
         op.Train[0].setValue(self.X)
@@ -60,13 +60,20 @@ class TestOpSVM(unittest.TestCase):
         svc = op.Classifier[0].wait()[0]
         assert isinstance(svc, SVC), "was {}".format(type(svc))
 
-        pred = OpSVMPredict(graph=g)
+        pred = OpSVMPredict.build(dict(), graph=g)
         pred.Classifier.connect(op.Classifier)
         pred.Input.setValue(self.X)
         pred.Target.connect(op.Train[1])
 
         res = pred.Output[...].wait()
         np.testing.assert_array_equal(res, self.y.view(np.ndarray))
+
+        pred.Classifier.disconnect()
+        pred.Classifier.setValue([None])
+        pred.Input.setValue(None)
+        pred.Input.setValue(self.X)
+        with self.assertRaises(ValueError):
+            pred.Output[...].wait()
 
 
 class TestOpSVR(unittest.TestCase):

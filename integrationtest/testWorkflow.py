@@ -16,6 +16,8 @@ from deeplearning.classifiers import OpStateTrain
 from deeplearning.classifiers import OpStatePredict
 from deeplearning.classifiers import OpSVMTrain
 from deeplearning.classifiers import OpSVMPredict
+from deeplearning.classifiers import OpRFTrain
+from deeplearning.classifiers import OpRFPredict
 from deeplearning.classifiers import OpDeepTrain
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
@@ -52,10 +54,10 @@ class OpFeatures(OpReorderAxes):
         return op
 
 
-class OpTarget(OpArrayPiperWithAccessCount, Classification):
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        op = OpTarget(parent=parent, graph=graph)
+class _OpTarget(OpArrayPiperWithAccessCount):
+    @classmethod
+    def build(cls, d, graph=None, parent=None, workingdir=None):
+        op = cls(parent=parent, graph=graph)
         return op
 
     def setupOutputs(self):
@@ -68,6 +70,10 @@ class OpTarget(OpArrayPiperWithAccessCount, Classification):
         data = self.Input[roi.start[0]:roi.stop[0]].wait()
         for i, c in enumerate(range(roi.start[1], roi.stop[1])):
             result[:, i] = np.where(data > .499, c, 1-c)
+
+
+class OpTarget(_OpTarget, Classification):
+    pass
 
 
 config = {"class": Workflow,
@@ -85,31 +91,35 @@ config = {"class": Workflow,
 
 class TestWorkflow(unittest.TestCase):
     def setUp(self):
-        pass
+        self.wd = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.wd)
 
     def testBasic(self):
-        d = tempfile.mkdtemp()
-        try:
-            w = Workflow.build(config, workingdir=d)
-            w.run()
-        except:
-            raise
-        finally:
-            shutil.rmtree(d)
+        w = Workflow.build(config, workingdir=self.wd)
+        w.run()
 
     def testIncompatible(self):
-        d = tempfile.mkdtemp()
         c = config.copy()
-        c["target"] = {"class": OpRegTarget}
-        import pprint
-        pprint.pprint(c)
-        try:
+
+        def foo():
             with self.assertRaises(IncompatibleTargets):
-                Workflow.build(c, workingdir=d)
-        except:
-            raise
-        finally:
-            shutil.rmtree(d)
+                Workflow.build(c, workingdir=self.wd)
+
+        c["target"] = {"class": _OpTarget}
+        foo()
+        c["target"] = {"class": OpRegTarget}
+        c["train"] = {"class": OpRFTrain}
+        foo()
+        c["train"] = {"class": OpSVMTrain}
+        c["predict"] = {"class": OpRFPredict}
+        foo()
+        c["predict"] = {"class": OpSVMPredict}
+        c["report"] = {"class": OpClassificationReport}
+        foo()
+        c["report"] = {"class": OpRegressionReport}
+        Workflow.build(c, workingdir=self.wd)
 
     def testSVM(self):
         d = tempfile.mkdtemp()
@@ -117,6 +127,19 @@ class TestWorkflow(unittest.TestCase):
             c = config.copy()
             c["train"] = {"class": OpSVMTrain}
             c["predict"] = {"class": OpSVMPredict}
+            w = Workflow.build(c, workingdir=d)
+            w.run()
+        except:
+            raise
+        finally:
+            shutil.rmtree(d)
+
+    def testRF(self):
+        d = tempfile.mkdtemp()
+        try:
+            c = config.copy()
+            c["train"] = {"class": OpRFTrain}
+            c["predict"] = {"class": OpRFPredict}
             w = Workflow.build(c, workingdir=d)
             w.run()
         except:

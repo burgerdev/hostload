@@ -29,7 +29,7 @@ class TestOpState(unittest.TestCase):
         self.yvalid = y
 
     def testTrain(self):
-        op = OpStateTrain(graph=Graph())
+        op = OpStateTrain.build(dict(), graph=Graph())
 
         op.Train.resize(2)
         op.Train[0].setValue(self.X)
@@ -57,7 +57,7 @@ class TestOpState(unittest.TestCase):
         idx = op.Classifier[0].wait()[0]
         assert isinstance(idx, int), "was {}".format(type(idx))
 
-        pred = OpStatePredict(graph=g)
+        pred = OpStatePredict.build(dict(), graph=g)
         pred.Classifier.connect(op.Classifier)
         pred.Input.setValue(self.X)
         pred.Target.connect(op.Train[1])

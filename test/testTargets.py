@@ -24,7 +24,10 @@ class TestOpExponentiallySegmentedpattern(unittest.TestCase):
 
     def testSimple(self):
         x = self.data
-        op = OpExponentiallySegmentedPattern(graph=Graph())
+        d = {"class": OpExponentiallySegmentedPattern,
+             "num_segments": self.num_segments,
+             "baseline_size": self.baseline_size}
+        op = OpExponentiallySegmentedPattern.build(d, graph=Graph())
         op.NumSegments.setValue(self.num_segments)
         op.BaselineSize.setValue(self.baseline_size)
         op.Input.setValue(x)
@@ -107,7 +110,10 @@ class TestOpHostloadTarget(unittest.TestCase):
         self.expected = expected
 
     def testSimple(self):
-        op = OpHostloadTarget(graph=Graph())
+        d = {"class": OpHostloadTarget,
+             "num_levels": self.num_levels,
+             "window_size": self.window_size}
+        op = OpHostloadTarget.build(d, graph=Graph())
         op.Input.setValue(self.data)
         op.WindowSize.setValue(self.window_size)
         op.NumLevels.setValue(self.num_levels)

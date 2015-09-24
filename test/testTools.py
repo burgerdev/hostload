@@ -43,7 +43,9 @@ class TestTools(unittest.TestCase):
         from lazyflow.operator import Operator
         from deeplearning.data import OpPickleCache
         d = {"class": Operator,
-             "cache": {"class": OpPickleCache}}
+             "cache": {"class": OpPickleCache},
+             "answer": 42,
+             "subdict": {"a": 1}}
         s = dumps(d)
         print("serialized to: \n{}".format(s))
         d2 = loads(s)
@@ -51,6 +53,13 @@ class TestTools(unittest.TestCase):
         print(d)
         print(d2)
         assert d == d2
+
+        class Custom(object):
+            A = 1
+
+        d = {"key": Custom()}
+        with self.assertRaises(TypeError):
+            dumps(d)
 
 
 def contentEqual(a, b):

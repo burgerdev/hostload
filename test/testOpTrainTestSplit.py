@@ -18,13 +18,11 @@ class TestOpTrainTestSplit(unittest.TestCase):
         x = vigra.taggedView(x, axistags='tc')
 
         g = Graph()
-        op = OpTrainTestSplit(graph=g)
+        op = OpTrainTestSplit.build(dict(test=.1, valid=.0), graph=g)
 
         op.Input.resize(1)
 
         op.Input[0].setValue(x)
-        op.TestPercentage.setValue(.1)
-        op.ValidPercentage.setValue(0)
 
         assert op.Train[0].meta.shape == (90, 5)
         assert op.Test[0].meta.shape == (10, 5)

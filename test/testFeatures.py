@@ -76,7 +76,6 @@ class TestOpRecent(TestOpMean):
 
         op, exp = self.getOp()
         op.Input.setValue(self.data)
-        op.WindowSize.setValue(self.window_size)
 
         y = op.Output[...].wait()
         np.testing.assert_array_equal(y.shape, (7, 3))
@@ -89,7 +88,8 @@ class TestOpRecent(TestOpMean):
         np.testing.assert_array_almost_equal(y, exp[1:4, 0:1])
 
     def getOp(self):
-        op = OpRecent(graph=Graph())
+        d = {"class": OpRecent, "window_size": self.window_size}
+        op = OpRecent.build(d, graph=Graph())
         exp = np.asarray([[5, 7, 3, 4, 10, 2, 3],
                           [5, 5, 7, 3, 4, 10, 2],
                           [5, 5, 5, 7, 3, 4, 10]]).T

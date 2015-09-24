@@ -61,7 +61,11 @@ class Workflow(object):
 
         w._writeConfig(d)
 
-        w._sanity_check()
+        try:
+            w._sanity_check()
+        except IncompatibleTargets:
+            w._cleanup()
+            raise
 
         return w
 
@@ -105,6 +109,14 @@ class Workflow(object):
         report.All[0].connect(pc.Output)
         report.All[1].connect(target.Output)
         report.Description.connect(split.Description)
+
+    def _cleanup(self):
+        print("cleaning")
+        c = self._predictionCache
+        self._report.All[0].disconnect()
+        c.Input.disconnect()
+        del self._predictionCache
+        del c
 
     def _sanity_check(self):
         if isinstance(self._target, Classification):
