@@ -1,9 +1,11 @@
 machine:
+    python:
+        version: 2.7.6
     services:
         - docker
 
 dependencies:
-    override:
+    pre:
         - pip install codecov
 
 test:
