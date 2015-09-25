@@ -5,7 +5,6 @@ from collections import OrderedDict
 import numpy as np
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.stype import Opaque
 
 from deeplearning.tools.serialization import dumps
 from deeplearning.tools import Classification
