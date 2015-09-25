@@ -10,6 +10,6 @@ dependencies:
 
 test:
     override:
-        - docker run burgerdev/hostload:latest >.coverage
+        - docker run burgerdev/hostload:latest >coverage.xml
     post:
         - codecov -X gcov --file coverage.xml
