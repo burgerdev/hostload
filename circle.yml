@@ -1,0 +1,13 @@
+machine:
+    services:
+        - docker
+
+dependencies:
+    override:
+        - pip install codecov
+
+test:
+    override:
+        - docker run burgerdev/hostload:latest 
+    post:
+        - codecov

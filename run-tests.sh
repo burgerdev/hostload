@@ -1,4 +1,5 @@
 #!/bin/bash
 
-nosetests --with-coverage --cover-package deeplearning \
+nosetests-2.7 --with-coverage --cover-package deeplearning \
+    --cover-html \
     test integrationtest/testWorkflow.py
