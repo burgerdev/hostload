@@ -12,4 +12,4 @@ test:
     override:
         - docker run burgerdev/hostload:latest >.coverage
     post:
-        - codecov -X gcov --file .coverage
+        - codecov -X gcov --file coverage.xml
