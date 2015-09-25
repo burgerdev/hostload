@@ -25,18 +25,14 @@ class _Cache(Operator):
 
     def setupOutputs(self):
         self.Output.meta.assignFrom(self.Input.meta)
+        self._cached = False
 
     def execute(self, slot, subindex, roi, result):
-        req = self.Input.get(roi)
-        req.writeInto(result)
-        req.block()
-        self.cache(roi, result)
+        raise NotImplementedError()
 
     def propagateDirty(self, slot, subindex, roi):
         self.Output.setDirty(roi)
-
-    def cache(self, roi, result):
-        raise NotImplementedError()
+        self._cached = False
 
 
 class OpPickleCache(_Cache):
@@ -44,11 +40,6 @@ class OpPickleCache(_Cache):
         super(OpPickleCache, self).setupOutputs()
         basename = self.name + ".pkl"
         self._filename = os.path.join(self.WorkingDir.value, basename)
-        self._cached = False
-
-    def propagateDirty(self, slot, subindex, roi):
-        self._cached = False
-        super(OpPickleCache, self).propagateDirty(slot, subindex, roi)
 
     def execute(self, slot, subindex, roi, result):
         if not self._cached:
@@ -79,16 +70,36 @@ class OpHDF5Cache(_Cache):
 
     def _getDataset(self, f):
         if self._internal in f:
-            del f[internal]
+            del f[self._internal]
 
         ds = f.create_dataset(
             self._internal, shape=self.Input.meta.shape,
             dtype=self.Input.meta.dtype)
         return ds
 
+    def execute(self, slot, subindex, roi, result):
+        if self._cached:
+            # we have cached data
+            s = roi.toSlice()
+            result[...] = self._payload[s]
+        else:
+            start = np.asarray(roi.start)
+            stop = np.asarray(roi.stop)
+            shape = np.asarray(self.Input.meta.shape)
+
+            req = self.Input.get(roi)
+            req.writeInto(result)
+            req.block()
+            self.cache(roi, result)
+
+            if np.all(start == 0) and np.all(stop == shape):
+                # request is for full array, we can cache
+                self._cached = True
+                self._payload = np.zeros_like(result)
+                self._payload[...] = result[...]
+
     def cache(self, roi, result):
-        # TODO provide cached result if available
-        with h5py.File(self._filename, "w") as f:
+        with h5py.File(self._filename, "a") as f:
             ds = self._getDataset(f)
             s = roi.toSlice()
             ds[s] = result
