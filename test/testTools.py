@@ -2,11 +2,19 @@
 import unittest
 from pprint import pprint
 
+import numpy as np
+import vigra
+
+from lazyflow.graph import Graph
+
 from deeplearning.tools import listifyDict
 from deeplearning.tools import expandDict
 
 from deeplearning.tools.serialization import dumps
 from deeplearning.tools.serialization import loads
+
+from deeplearning.tools.generic import OpNormalize
+
 
 class TestTools(unittest.TestCase):
     def setUp(self):
@@ -61,7 +69,24 @@ class TestTools(unittest.TestCase):
         with self.assertRaises(TypeError):
             dumps(d)
 
+    def testNormalize(self):
+        x = np.random.random(size=(1000,))
+        x = vigra.taggedView(x, axistags='t')
+
+        op = OpNormalize(graph=Graph())
+        op.Input.setValue(x)
+
+        y = op.Output[...].wait()
+        np.testing.assert_almost_equal(y.mean(), x.mean())
+        np.testing.assert_almost_equal(y.var(), x.var())
+
+        op.Mean.setValue(x.mean())
+        op.StdDev.setValue(np.sqrt(x.var()))
+
+        y = op.Output[...].wait()
+        np.testing.assert_almost_equal(y.mean(), 0)
+        np.testing.assert_almost_equal(y.var(), 1)
+
 
 def contentEqual(a, b):
     return all(i in b for i in a) and all(i in a for i in b)
-        
