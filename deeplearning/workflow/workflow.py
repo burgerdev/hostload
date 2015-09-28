@@ -17,10 +17,9 @@ from deeplearning.split import OpTrainTestSplit
 class Workflow(object):
     @staticmethod
     def build(config, workingdir=None):
-        assert "class" in config and issubclass(Workflow, config["class"])
-
         d = getDefaultConfig()
         d.update(config)
+        assert "class" in d and issubclass(Workflow, d["class"])
 
         if workingdir is None:
             if "workingdir" in d:
