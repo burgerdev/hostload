@@ -11,6 +11,7 @@ from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
 from deeplearning.data import OpPickleCache
 from deeplearning.data import OpHDF5Cache
+from deeplearning.data import OpStreamingHdf5Reader
 from deeplearning.features import OpRecent
 from deeplearning.report import OpRegressionReport
 from deeplearning.targets import OpExponentiallySegmentedPattern
@@ -66,6 +67,22 @@ class TestMLPRegression(object):
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    parser.add_argument("--h5file",
+                        help="1D hdf5 file formatted as file.h5:path_in_file",
+                        default=None)
+
+    args = parser.parse_args()
+
+    if args.h5file is not None:
+        assert ":" in args.h5file, "See help for argument --h5file"
+        filename, internal = args.h5file.split(":")
+        config["source"] = {"class": OpStreamingHdf5Reader,
+                            "filename": filename,
+                            "internal_path": internal}
+
     test = TestMLPRegression()
     test.setUp()
     try:
@@ -73,10 +90,12 @@ if __name__ == "__main__":
     finally:
         test.tearDown()
 
-    pred = w._predictionCache.Output[...].wait()
-    target = w._target.Output[...].wait()
+    pred = w._predictionCache.Output[...].wait().squeeze()
+    target = w._target.Output[...].wait().squeeze()
+    orig = w._source.Output[...].wait().squeeze()
 
     plt.plot(target, 'b')
     plt.plot(pred, 'r+')
-    plt.legend(("ground truth", "prediction"))
+    plt.plot(orig, 'k.')
+    plt.legend(("ground truth", "prediction", "original data"))
     plt.show()
