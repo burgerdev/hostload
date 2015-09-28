@@ -58,6 +58,7 @@ class TestMLPRegression(object):
             warnings.simplefilter("ignore")
             w.run()
         self.__verify(w)
+        return w
 
     def __verify(self, w):
         pass

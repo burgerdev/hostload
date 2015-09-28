@@ -5,12 +5,13 @@ import vigra
 from lazyflow.utility.testing import OpArrayPiperWithAccessCount
 
 TAU = 2*np.pi
+MAX_SEED = 4294967295
 
 
 class _BaseDataset(OpArrayPiperWithAccessCount):
     @classmethod
     def build(cls, d, graph=None, parent=None, workingdir=None):
-        np.random.seed(hash(cls.__name__))
+        np.random.seed(hash(cls.__name__) % MAX_SEED)
         data = cls.createDataset(d)
         op = cls(parent=parent, graph=graph)
         op.Input.setValue(data)
