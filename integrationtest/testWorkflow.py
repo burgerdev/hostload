@@ -11,7 +11,6 @@ from lazyflow.utility.testing import OpArrayPiperWithAccessCount
 from lazyflow.operators import OpReorderAxes
 
 from deeplearning.workflow import Workflow
-from deeplearning.split import OpTrainTestSplit
 from deeplearning.classifiers import OpStateTrain
 from deeplearning.classifiers import OpStatePredict
 from deeplearning.classifiers import OpSVMTrain
@@ -21,8 +20,6 @@ from deeplearning.classifiers import OpRFPredict
 from deeplearning.classifiers import OpDeepTrain
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
-from deeplearning.data import OpPickleCache
-from deeplearning.data import OpHDF5Cache
 from deeplearning.report import OpClassificationReport
 from deeplearning.report import OpRegressionReport
 from deeplearning.tools import Classification
@@ -31,19 +28,7 @@ from deeplearning.tools import IncompatibleTargets
 
 from pylearn2.models import mlp
 
-
-class OpSource(OpArrayPiperWithAccessCount):
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        assert "shape" in d
-        data = np.linspace(0, 1, d["shape"][0])
-        np.random.seed(420)
-        data = data[np.random.permutation(len(data))]
-        tags = "".join([t for s, t in zip(data.shape, 'txyzc')])
-        data = vigra.taggedView(data, axistags=tags)
-        op = OpSource(parent=parent, graph=graph)
-        op.Input.setValue(data)
-        return op
+from integrationdatasets import OpShuffledLinspace
 
 
 class OpFeatures(OpReorderAxes):
@@ -76,16 +61,29 @@ class OpTarget(_OpTarget, Classification):
     pass
 
 
-config = {"class": Workflow,
-          "source": {"class": OpSource,
+class OpRegTarget(OpArrayPiperWithAccessCount, Regression):
+    @staticmethod
+    def build(d, graph=None, parent=None, workingdir=None):
+        op = OpRegTarget(parent=parent, graph=graph)
+        return op
+
+    def setupOutputs(self):
+        assert len(self.Input.meta.shape) == 1
+        self.Output.meta.shape = (self.Input.meta.shape[0], 1)
+        self.Output.meta.dtype = np.float
+        self.Output.meta.axistags = vigra.defaultAxistags('tc')
+
+    def execute(self, slot, subindex, roi, result):
+        data = self.Input[roi.start[0]:roi.stop[0]].wait()
+        result[:, 0] = 1 - data
+
+
+config = {"source": {"class": OpShuffledLinspace,
                      "shape": (1000,)},
           "features": {"class": OpFeatures},
           "target": {"class": OpTarget},
-          "split": {"class": OpTrainTestSplit},
           "train": {"class": OpStateTrain},
-          "classifierCache": {"class": OpPickleCache},
           "predict": {"class": OpStatePredict},
-          "predictionCache": {"class": OpHDF5Cache},
           "report": {"class": OpClassificationReport}}
 
 
@@ -189,8 +187,6 @@ class TestWorkflow(unittest.TestCase):
                           "layer_classes": (mlp.Sigmoid,),
                           "layer_sizes": (5,)}
             c["predict"] = {"class": OpMLPPredict}
-            c["source"] = {"class": OpRegSource,
-                           "shape": (1000,)}
             c["target"] = {"class": OpRegTarget}
             c["report"] = {"class": OpRegressionReport, "levels": 10}
             w = Workflow.build(c, workingdir=d)
@@ -201,32 +197,3 @@ class TestWorkflow(unittest.TestCase):
             raise
         finally:
             shutil.rmtree(d)
-
-
-class OpRegSource(OpArrayPiperWithAccessCount):
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        assert "shape" in d
-        data = np.linspace(0, 1, d["shape"][0])
-        tags = "".join([t for s, t in zip(data.shape, 'txyzc')])
-        data = vigra.taggedView(data, axistags=tags)
-        op = OpSource(parent=parent, graph=graph)
-        op.Input.setValue(data)
-        return op
-
-
-class OpRegTarget(OpArrayPiperWithAccessCount, Regression):
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        op = OpRegTarget(parent=parent, graph=graph)
-        return op
-
-    def setupOutputs(self):
-        assert len(self.Input.meta.shape) == 1
-        self.Output.meta.shape = (self.Input.meta.shape[0], 1)
-        self.Output.meta.dtype = np.float
-        self.Output.meta.axistags = vigra.defaultAxistags('tc')
-
-    def execute(self, slot, subindex, roi, result):
-        data = self.Input[roi.start[0]:roi.stop[0]].wait()
-        result[:, 0] = 1 - data

@@ -9,14 +9,18 @@ from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 from deeplearning.tools import IncompatibleTargets
 
+from deeplearning.data.caches import OpPickleCache
+from deeplearning.data.caches import OpHDF5Cache
+from deeplearning.split import OpTrainTestSplit
+
 
 class Workflow(object):
     @staticmethod
-    def build(d, workingdir=None):
-        assert "class" in d and issubclass(Workflow, d["class"])
+    def build(config, workingdir=None):
+        assert "class" in config and issubclass(Workflow, config["class"])
 
-        # we might delete keys, use a copy so that input is not changed
-        d = d.copy()
+        d = getDefaultConfig()
+        d.update(config)
 
         if workingdir is None:
             if "workingdir" in d:
@@ -139,3 +143,17 @@ class Workflow(object):
         with open(fn, "w") as f:
             f.write(s)
             f.write("\n")
+
+
+def getDefaultConfig():
+    config = {"class": Workflow,
+              "source": {"class": None},
+              "features": {"class": None},
+              "target": {"class": None},
+              "split": {"class": OpTrainTestSplit},
+              "train": {"class": None},
+              "classifierCache": {"class": OpPickleCache},
+              "predict": {"class": None},
+              "predictionCache": {"class": OpHDF5Cache},
+              "report": {"class": None}}
+    return config

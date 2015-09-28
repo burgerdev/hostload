@@ -34,3 +34,14 @@ class OpNoisySine(_BaseDataset):
         data += noise
         data = vigra.taggedView(data, axistags="t")
         return data
+
+
+class OpShuffledLinspace(_BaseDataset):
+    @classmethod
+    def createDataset(cls, config):
+        assert "shape" in config
+        data = np.linspace(0, 1, config["shape"][0])
+        data = data[np.random.permutation(len(data))]
+        tags = "".join([t for s, t in zip(data.shape, 'txyzc')])
+        data = vigra.taggedView(data, axistags=tags)
+        return data
