@@ -125,10 +125,10 @@ class Workflow(object):
         report.Description.connect(split.Description)
 
     def _cleanup(self):
-        print("cleaning")
         c = self._predictionCache
         self._report.All[0].disconnect()
         c.Input.disconnect()
+        c.cleanUp()
         del self._predictionCache
         del c
 
@@ -158,7 +158,7 @@ class Workflow(object):
 def getDefaultConfig():
     config = {"class": Workflow,
               "source": {"class": None},
-              "preprocessing": [],
+              "preprocessing": tuple(),
               "features": {"class": None},
               "target": {"class": None},
               "split": {"class": OpTrainTestSplit},

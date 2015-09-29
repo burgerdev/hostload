@@ -2,6 +2,7 @@
 import h5py
 
 from lazyflow.operators.ioOperators import OpStreamingHdf5Reader as _OpHdf5
+from lazyflow.operators import OpArrayPiper as _OpPiper
 from lazyflow.operator import OutputSlot
 
 
@@ -26,3 +27,10 @@ class OpStreamingHdf5Reader(_OpHdf5):
         if self.close_on_del:
             self.Hdf5File.value.close()
         super(OpStreamingHdf5Reader, self).cleanUp()
+
+
+class OpArrayPiper(_OpPiper):
+    @classmethod
+    def build(cls, config, graph=None, parent=None, workingdir=None):
+        op = cls(graph=graph, parent=parent)
+        return op

@@ -1,10 +1,7 @@
 
-from pprint import pprint
-
-from itertools import imap
 from itertools import product
 from itertools import chain
-from functools import partial
+
 
 def expandDict(d, listify=True):
     if listify:
@@ -25,6 +22,7 @@ def expandDict(d, listify=True):
 def listifyDict(d):
     if not isinstance(d, dict):
         return d
+
     def apply(k):
         v = d[k]
         if isinstance(v, dict):

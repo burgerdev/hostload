@@ -1,9 +1,7 @@
 
 import warnings
 import tempfile
-
-import numpy as np
-import vigra
+import shutil
 
 from deeplearning.workflow import Workflow
 from deeplearning.split import OpTrainTestSplit
@@ -18,7 +16,7 @@ from deeplearning.targets import OpExponentiallySegmentedPattern
 
 from pylearn2.models import mlp
 
-from integrationdatasets import OpNoisySine
+from deeplearning.data.integrationdatasets import OpNoisySine
 
 
 config = {"class": Workflow,
@@ -38,15 +36,16 @@ config = {"class": Workflow,
 
 
 class TestMLPRegression(object):
+    remove_tempdir = True
     def setUp(self):
         self.wd = tempfile.mkdtemp(prefix="MLPReg_")
 
     def tearDown(self):
-        import sys
-        sys.stderr.write("testMLP: {}\n".format(self.wd))
-        # TODO remove dir
-        # shutil.rmtree(d)
-        
+        if self.remove_tempdir:
+            shutil.rmtree(self.wd)
+        else:
+            import sys
+            sys.stderr.write("testMLP: {}\n".format(self.wd))
 
     def testRun(self):
         c = config.copy()
@@ -91,6 +90,7 @@ if __name__ == "__main__":
         config["preprocessing"] = [{"class": OpDiff}]
 
     test = TestMLPRegression()
+    test.remove_tempdir = False
     test.setUp()
     try:
         w = test.testRun()

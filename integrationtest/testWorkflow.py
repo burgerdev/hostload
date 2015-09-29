@@ -4,12 +4,6 @@ import unittest
 import shutil
 import tempfile
 
-import numpy as np
-import vigra
-
-from lazyflow.utility.testing import OpArrayPiperWithAccessCount
-from lazyflow.operators import OpReorderAxes
-
 from deeplearning.workflow import Workflow
 from deeplearning.classifiers import OpStateTrain
 from deeplearning.classifiers import OpStatePredict
@@ -22,60 +16,14 @@ from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
 from deeplearning.report import OpClassificationReport
 from deeplearning.report import OpRegressionReport
-from deeplearning.tools import Classification
-from deeplearning.tools import Regression
 from deeplearning.tools import IncompatibleTargets
 
 from pylearn2.models import mlp
 
-from integrationdatasets import OpShuffledLinspace
-
-
-class OpFeatures(OpReorderAxes):
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        op = OpFeatures(parent=parent, graph=graph)
-        op.AxisOrder.setValue('tc')
-        return op
-
-
-class _OpTarget(OpArrayPiperWithAccessCount):
-    @classmethod
-    def build(cls, d, graph=None, parent=None, workingdir=None):
-        op = cls(parent=parent, graph=graph)
-        return op
-
-    def setupOutputs(self):
-        assert len(self.Input.meta.shape) == 1
-        self.Output.meta.shape = (self.Input.meta.shape[0], 2)
-        self.Output.meta.dtype = np.float
-        self.Output.meta.axistags = vigra.defaultAxistags('tc')
-
-    def execute(self, slot, subindex, roi, result):
-        data = self.Input[roi.start[0]:roi.stop[0]].wait()
-        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
-            result[:, i] = np.where(data > .499, c, 1-c)
-
-
-class OpTarget(_OpTarget, Classification):
-    pass
-
-
-class OpRegTarget(OpArrayPiperWithAccessCount, Regression):
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        op = OpRegTarget(parent=parent, graph=graph)
-        return op
-
-    def setupOutputs(self):
-        assert len(self.Input.meta.shape) == 1
-        self.Output.meta.shape = (self.Input.meta.shape[0], 1)
-        self.Output.meta.dtype = np.float
-        self.Output.meta.axistags = vigra.defaultAxistags('tc')
-
-    def execute(self, slot, subindex, roi, result):
-        data = self.Input[roi.start[0]:roi.stop[0]].wait()
-        result[:, 0] = 1 - data
+from deeplearning.data.integrationdatasets import OpShuffledLinspace
+from deeplearning.data.integrationdatasets import OpTarget
+from deeplearning.data.integrationdatasets import OpRegTarget
+from deeplearning.data.integrationdatasets import OpFeatures
 
 
 config = {"source": {"class": OpShuffledLinspace,
@@ -105,7 +53,7 @@ class TestWorkflow(unittest.TestCase):
             with self.assertRaises(IncompatibleTargets):
                 Workflow.build(c, workingdir=self.wd)
 
-        c["target"] = {"class": _OpTarget}
+        c["target"] = {"class": OpFeatures}
         foo()
         c["target"] = {"class": OpRegTarget}
         c["train"] = {"class": OpRFTrain}

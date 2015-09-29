@@ -21,9 +21,10 @@ class TestTools(unittest.TestCase):
         pass
 
     def testListifyDict(self):
-        d = {'a': [1, 2], 'b': 'x', 'c': {'d': 7, 'e': [Exception]}}
+        d = {'a': [1, 2], 'b': 'x', 'c': {'d': 7, 'e': [Exception]},
+             'f': (0, 1)}
         e = {'a': [1, 2], 'b': ['x'], 'c': [{'d': [7],
-                                             'e': [Exception]}]}
+                                             'e': [Exception]}], 'f': [(0, 1)]}
         d2 = listifyDict(d)
         if e != d2:
             pprint(d)
@@ -41,6 +42,23 @@ class TestTools(unittest.TestCase):
         l.append({'a': 2, 'b': 'x', 'c': {'d': 8, 'e': Exception}})
 
         l2 = list(expandDict(d))
+
+        if not contentEqual(l, l2):
+            pprint(l)
+            pprint(l2)
+            raise AssertionError("expandDict produced unexpected dicts")
+
+    def testExpandDictFull(self):
+        d1 = {0: 0}
+        d2 = {1: [1, 1.1]}
+        d = {'a': (0, 1), 'b': [d1, d2]}
+
+        l = []
+        l.append({'a': (0, 1), 'b': d1})
+        l.append({'a': (0, 1), 'b': {1: 1}})
+        l.append({'a': (0, 1), 'b': {1: 1.1}})
+
+        l2 = list(expandDict(listifyDict(d)))
 
         if not contentEqual(l, l2):
             pprint(l)
