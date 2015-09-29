@@ -60,12 +60,33 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         nvis = self.Train[0].meta.shape[1]
         layers = []
         layer_sizes = self._getLayerSizeIterator()
-        for i, cls in enumerate(self._layer_classes):
+        for i, cls in enumerate(self._layer_classes):            
             name = "hidden_{:02d}".format(i)
-            nhid = layer_sizes.next()
-            layer = cls(dim=nhid, irange=.1, layer_name=name)
+            config = {"layer_name": name}
+            if isinstance(cls, dict):
+                actual_class = cls["class"]
+                config.update(cls)
+                del config["class"]
+            elif issubclass(cls, mlp.Layer):
+                config["irange"] = .1
+                config["dim"] = layer_sizes.next()
+                actual_class = cls
+            else:
+                raise ValueError("invalid layer: {}".format(cls))
+
+            layer = actual_class(**config)
             layers.append(layer)
 
+        if len(layers) > 0:
+            last_layer = layers[-1]
+            if hasattr(last_layer, "dim"):
+                last_dim = last_layer.dim
+            elif hasattr(last_layer, "output_channels"):
+                last_dim = last_layer.output_channels
+            else:
+                raise ValueError("don't know where the layer stores its dim")
+        else:
+            last_dim = nvis
         n_out = self.Train[1].meta.shape[1]
 
         if n_out == 1:
@@ -81,7 +102,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
 
         if self._regression:
             # try to initialize weights smartly
-            w = np.ones((nhid, 1), dtype=np.float32)/nhid
+            w = np.ones((last_dim, 1), dtype=np.float32)/last_dim
             output.set_weights(w)
 
     def _train(self):

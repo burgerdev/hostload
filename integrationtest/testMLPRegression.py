@@ -73,6 +73,9 @@ if __name__ == "__main__":
     parser.add_argument("--h5file",
                         help="1D hdf5 file formatted as file.h5:path_in_file",
                         default=None)
+    parser.add_argument("--diff", action="store_true",
+                        help="use np.diff of input",
+                        default=False)
 
     args = parser.parse_args()
 
@@ -82,6 +85,10 @@ if __name__ == "__main__":
         config["source"] = {"class": OpStreamingHdf5Reader,
                             "filename": filename,
                             "internal_path": internal}
+
+    if args.diff:
+        from deeplearning.features import OpDiff
+        config["preprocessing"] = [{"class": OpDiff}]
 
     test = TestMLPRegression()
     test.setUp()

@@ -12,6 +12,11 @@ class OpWindow(Operator):
 
     Output = OutputSlot()
 
+    @classmethod
+    def build(cls, config, parent=None, graph=None, workingdir=None):
+        op = cls(parent=parent, graph=graph)
+        return op
+
     def setupOutputs(self):
         self.Output.meta.shape = (self.Input.meta.shape[0],)
         self.Output.meta.axistags = vigra.defaultAxistags('t')
@@ -48,3 +53,13 @@ class OpRawWindowed(OpWindow):
     @classmethod
     def applyWindowFunction(cls, input_array, window_size, output_array):
         output_array[:] = input_array[window_size-1:]
+
+
+class OpDiff(OpWindow):
+    def __init__(self, *args, **kwargs):
+        super(OpDiff, self).__init__(*args, **kwargs)
+        self.WindowSize.setValue(2)
+
+    @classmethod
+    def applyWindowFunction(cls, input_array, window_size, output_array):
+        output_array[:] = np.diff(input_array)

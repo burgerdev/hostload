@@ -15,11 +15,12 @@ from deeplearning.split import OpTrainTestSplit
 
 
 class Workflow(object):
-    @staticmethod
-    def build(config, workingdir=None):
+    @classmethod
+    def build(cls, config, workingdir=None):
         d = getDefaultConfig()
         d.update(config)
-        assert "class" in d and issubclass(Workflow, d["class"])
+        assert "class" in d and issubclass(d["class"], Workflow)
+        del d["class"]
 
         if workingdir is None:
             if "workingdir" in d:
@@ -35,30 +36,34 @@ class Workflow(object):
                         raise
             else:
                 workingdir = tempfile.mkdtemp(prefix="deeplearning_")
-        w = Workflow(workingdir=workingdir)
+
+        w = cls(workingdir=workingdir)
 
         kwargs = dict(graph=w._graph)
 
         for key in d:
-            if key == "class":
-                continue
             assert isinstance(key, str)
             attr = "_" + key
             assert not hasattr(w, attr)
 
-            subdir = os.path.join(workingdir, key)
-            try:
-                os.mkdir(subdir)
-            except OSError as err:
-                if "exists" in str(err):
-                    # that's fine
-                    pass
-                else:
-                    raise
+            if key == "preprocessing":
+                value = [subdict["class"].build(subdict, **kwargs)
+                         for subdict in d[key]]
+            else:
+                subdir = os.path.join(workingdir, key)
+                try:
+                    os.mkdir(subdir)
+                except OSError as err:
+                    if "exists" in str(err):
+                        # that's fine
+                        pass
+                    else:
+                        raise
 
-            kwargs["workingdir"] = subdir
-            subdict = d[key]
-            setattr(w, attr, subdict["class"].build(subdict, **kwargs))
+                kwargs["workingdir"] = subdir
+                subdict = d[key]
+                value = subdict["class"].build(subdict, **kwargs)
+            setattr(w, attr, value)
 
         w._initialize()
 
@@ -90,13 +95,19 @@ class Workflow(object):
         pc = self._predictionCache
         report = self._report
 
-        features.Input.connect(source.Output)
-        target.Input.connect(source.Output)
+        lastOutput = source.Output
+
+        for op in self._preprocessing:
+            op.Input.connect(lastOutput)
+            lastOutput = op.Output
+
+        features.Input.connect(lastOutput)
+        target.Input.connect(lastOutput)
 
         split.Input.resize(2)
         split.Input[0].connect(features.Output)
         split.Input[1].connect(target.Output)
-        
+
         train.Train.connect(split.Train)
         train.Valid.connect(split.Valid)
 
@@ -147,6 +158,7 @@ class Workflow(object):
 def getDefaultConfig():
     config = {"class": Workflow,
               "source": {"class": None},
+              "preprocessing": [],
               "features": {"class": None},
               "target": {"class": None},
               "split": {"class": OpTrainTestSplit},

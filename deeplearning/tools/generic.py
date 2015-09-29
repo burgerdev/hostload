@@ -1,6 +1,7 @@
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 
+
 class OpNormalize(Operator):
     Input = InputSlot()
     Mean = InputSlot(value=0.0)

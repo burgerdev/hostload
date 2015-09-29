@@ -7,6 +7,7 @@ import vigra
 from lazyflow.graph import Graph
 
 from deeplearning.features import OpRawWindowed
+from deeplearning.features import OpDiff
 from deeplearning.features import OpMean
 from deeplearning.features import OpLinearWeightedMean
 from deeplearning.features import OpFairness
@@ -24,7 +25,6 @@ class TestOpMean(unittest.TestCase):
 
         op, exp = self.getOp()
         op.Input.setValue(self.data)
-        op.WindowSize.setValue(self.window_size)
 
         y = op.Output[...].wait()
         np.testing.assert_array_equal(y.shape, (7,))
@@ -38,6 +38,7 @@ class TestOpMean(unittest.TestCase):
 
     def getOp(self):
         op = OpMean(graph=Graph())
+        op.WindowSize.setValue(self.window_size)
         exp = np.asarray([5, 12, 15, 14, 17, 16, 15])/3.0
         return op, exp
 
@@ -45,6 +46,7 @@ class TestOpMean(unittest.TestCase):
 class TestOpLinearWeightedMean(TestOpMean):
     def getOp(self):
         op = OpLinearWeightedMean(graph=Graph())
+        op.WindowSize.setValue(self.window_size)
         exp = np.asarray([15, 31, 28, 25, 41, 30, 23])/6.0
         return op, exp
 
@@ -52,6 +54,7 @@ class TestOpLinearWeightedMean(TestOpMean):
 class TestOpFairness(TestOpMean):
     def getOp(self):
         op = OpFairness(graph=Graph())
+        op.WindowSize.setValue(self.window_size)
         exp = np.zeros((7,))
         exp[0] = 1.0
         exp[1] = (144)/float(25+49)
@@ -67,7 +70,16 @@ class TestOpFairness(TestOpMean):
 class TestOpRawWindowed(TestOpMean):
     def getOp(self):
         op = OpRawWindowed(graph=Graph())
+        op.WindowSize.setValue(self.window_size)
         exp = np.asarray([5, 7, 3, 4, 10, 2, 3])
+        return op, exp
+
+
+class TestOpDiff(TestOpMean):
+    def getOp(self):
+        op = OpDiff(graph=Graph())
+        op.WindowSize.setValue(2)
+        exp = np.asarray([5, 2, -4, 1, 6, -8, 1])
         return op, exp
 
 
