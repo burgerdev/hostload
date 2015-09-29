@@ -21,11 +21,9 @@ def _assert_input_ready(method):
     """
     @wraps(method)
     def wrapped(self, *args, **kwargs):
-        if len(self.Input) != 2:
-            raise RuntimeError("input slot needs data and target")
-        if not self.Input[0].ready() or not self.Input[1].ready():
-            raise RuntimeError("input is not ready, "
-                               "can't use dataset yet")
+        assert len(self.Input) == 2, "input slot needs data and target"
+        assert self.Input[0].ready() and self.Input[1].ready(),\
+            "input is not ready, can't use dataset yet"
         return method(self, *args, **kwargs)
     return wrapped
 
@@ -70,7 +68,7 @@ class OpDataset(Operator, Dataset):
         self.Output.setDirty(roi)
 
     def execute(self, slot, subindex, roi, result):
-        raise RuntimeError("should not reach this method")
+        raise NotImplementedError("should not reach this method")
 
     # METHODS FOR DATASET
 

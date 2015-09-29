@@ -11,6 +11,7 @@ from lazyflow.utility.testing import OpArrayPiperWithAccessCount
 
 from deeplearning.data.caches import OpPickleCache
 from deeplearning.data.caches import OpHDF5Cache
+from deeplearning.data.wrappers import OpStreamingHdf5Reader
 
 
 class TestReport(unittest.TestCase):
@@ -42,3 +43,23 @@ class TestReport(unittest.TestCase):
         pipe.Input.setDirty(slice(None))
         op.Output[...].wait()
         np.testing.assert_equal(pipe.accessCount, 2)
+
+        return op
+
+    def testOpStreamingHdf5Reader(self):
+        cache = self.runWithClass(OpHDF5Cache)
+
+        data = cache.Output[...].wait()
+
+        config = {"class": OpStreamingHdf5Reader,
+                  "filename": os.path.join(self.wd, "OpHDF5Cache.h5"),
+                  "internal_path": "data"}
+
+        op = OpStreamingHdf5Reader.build(config, graph=self.g)
+
+        data2 = op.Output[...].wait()
+
+        np.testing.assert_array_equal(data, data2)
+
+        op.cleanUp()
+        del op

@@ -4,4 +4,4 @@ exclude_lines =
     pragma: no cover
 
     # Don't complain if tests don't hit defensive assertion code:
-    raise NotImplementedError()
+    raise NotImplementedError
