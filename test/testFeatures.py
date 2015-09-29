@@ -77,7 +77,7 @@ class TestOpRawWindowed(TestOpMean):
 
 class TestOpDiff(TestOpMean):
     def getOp(self):
-        op = OpDiff(graph=Graph())
+        op = OpDiff.build(dict(), graph=Graph())
         op.WindowSize.setValue(2)
         exp = np.asarray([5, 2, -4, 1, 6, -8, 1])
         return op, exp

@@ -49,7 +49,7 @@ class TestOpDataset(unittest.TestCase):
         for batch in i:
             np.testing.assert_equal(len(batch), k)
 
-        i = self.op.iterator(mode='sequential', num_batches=k)
+        i = self.op.iterator(mode=None, num_batches=k)
         batches = [b for b in i]
         np.testing.assert_equal(len(batches), k)
 

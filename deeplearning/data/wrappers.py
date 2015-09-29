@@ -22,6 +22,7 @@ class OpStreamingHdf5Reader(_OpHdf5):
         super(OpStreamingHdf5Reader, self).__init__(*args, **kwargs)
         self.Output.connect(self.OutputImage)
 
-    def __del__(self):
+    def cleanUp(self):
         if self.close_on_del:
             self.Hdf5File.value.close()
+        super(OpStreamingHdf5Reader, self).cleanUp()
