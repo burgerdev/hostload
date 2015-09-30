@@ -1,14 +1,9 @@
-import numpy as np
-import vigra
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.rtype import SubRegion
-
 from lazyflow.operators import OpReorderAxes
 
-from .opDiscretize import OpDiscretize
-from .opExponentiallySegmentedPattern\
-    import OpExponentiallySegmentedPattern
+from .converters import OpDiscretize
+from .segmented import OpExponentiallySegmentedPattern
 
 
 class OpHostloadTarget(Operator):

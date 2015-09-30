@@ -1,7 +1,8 @@
 
 import numpy as np
 
-from opWindow import OpWindow
+from .window import OpWindow
+
 
 class OpFilter(OpWindow):
     @classmethod

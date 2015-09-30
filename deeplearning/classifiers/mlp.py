@@ -12,7 +12,7 @@ from deeplearning.tools import Regression
 from .abcs import OpTrain
 from .abcs import OpPredict
 
-from .opDeep import getTerminationCriteria
+from .deep import getTerminationCriteria
 
 
 from pylearn2.models import mlp

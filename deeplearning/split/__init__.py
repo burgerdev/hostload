@@ -1,2 +1,2 @@
-from .opTrainTestSplit import OpTrainTestSplit
-from .opTrainTestSplit import SplitTypes
+from .split import OpTrainTestSplit
+from .split import SplitTypes

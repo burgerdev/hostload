@@ -1,6 +1,8 @@
-from .opMean import OpMean
-from .opMean import OpLinearWeightedMean
-from .opFairness import OpFairness
-from .opWindow import OpRawWindowed
-from .opWindow import OpDiff
-from .opRecent import OpRecent
+from .window import OpRawWindowed
+from .window import OpDiff
+from .window import OpFairness
+
+from .filter import OpMean
+from .filter import OpLinearWeightedMean
+
+from .recent import OpRecent
