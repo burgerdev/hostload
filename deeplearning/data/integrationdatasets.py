@@ -41,6 +41,14 @@ class OpNoisySine(_BaseDataset):
         return data
 
 
+class OpPipedTarget(OpReorderAxes, Regression):
+    @classmethod
+    def build(cls, d, graph=None, parent=None, workingdir=None):
+        op = cls(parent=parent, graph=graph)
+        op.AxisOrder.setValue('tc')
+        return op
+
+
 class OpShuffledLinspace(_BaseDataset):
     @classmethod
     def createDataset(cls, config):
