@@ -115,7 +115,8 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         else:
             channel = "valid_output_misclass"
 
-        tc = getTerminationCriteria(epochs=200, channel=channel)
+        # TODO make this a parameter
+        tc = getTerminationCriteria(epochs=40, channel=channel)
         keep = best_params.MonitorBasedSaveBest(
             channel_name=channel, store_best_model=True)
 
