@@ -1,6 +1,5 @@
 
 import logging
-from itertools import repeat
 
 import numpy as np
 import theano
@@ -12,7 +11,8 @@ from deeplearning.tools import Regression
 from .abcs import OpTrain
 from .abcs import OpPredict
 
-from .deep import getTerminationCriteria
+from .deep import get_termination_criteria
+from .deep import get_layer_size_iterator
 
 
 from pylearn2.models import mlp
@@ -59,7 +59,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
     def _configureLayers(self):
         nvis = self.Train[0].meta.shape[1]
         layers = []
-        layer_sizes = self._getLayerSizeIterator()
+        layer_sizes = get_layer_size_iterator(self._size_hidden_layers)
         for i, cls in enumerate(self._layer_classes):            
             name = "hidden_{:02d}".format(i)
             config = {"layer_name": name}
@@ -116,7 +116,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
             channel = "valid_output_misclass"
 
         # TODO make this a parameter
-        tc = getTerminationCriteria(epochs=40, channel=channel)
+        tc = get_termination_criteria(epochs=40, channel=channel)
         keep = best_params.MonitorBasedSaveBest(
             channel_name=channel, store_best_model=True)
 
@@ -139,16 +139,6 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         nn.set_param_values(params)
         best_cost = keep.best_cost
         logger.info("Restoring model with cost {}".format(best_cost))
-
-    def _getLayerSizeIterator(self):
-        try:
-            i = iter(self._size_hidden_layers)
-        except TypeError:
-            # layer size is a single integer
-            i = repeat(self._size_hidden_layers)
-
-        while True:
-            yield i.next()
 
 
 class OpMLPPredict(OpPredict, Classification, Regression):

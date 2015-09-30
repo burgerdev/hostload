@@ -1,3 +1,7 @@
+"""
+classifier operators (training operators and prediction operators)
+"""
+
 from .svm import OpSVMTrain
 from .svm import OpSVMPredict
 from .state import OpStateTrain

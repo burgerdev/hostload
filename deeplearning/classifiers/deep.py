@@ -1,3 +1,6 @@
+"""
+deep Boltzmann machines (greedy unsupervised pretraining + supervised training)
+"""
 
 import logging
 from itertools import repeat
@@ -7,25 +10,37 @@ from .abcs import OpTrain
 from deeplearning.data import OpDataset
 from deeplearning.tools import Classification
 
+from lazyflow.operator import InputSlot
+
 from pylearn2.models import mlp
 from pylearn2.models import rbm
 from pylearn2.training_algorithms import sgd
 from pylearn2.training_algorithms import bgd
 from pylearn2.training_algorithms import learning_rule
 from pylearn2.train_extensions import best_params
-from pylearn2.energy_functions import rbm_energy
 from pylearn2 import termination_criteria
 from pylearn2 import blocks
-from pylearn2 import corruption
 from pylearn2 import train
 from pylearn2.costs import ebm_estimation
 from pylearn2.datasets import transformer_dataset
 
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class OpDeepTrain(OpTrain, Classification):
+    """
+    create an MLP and train it with the DBN approach
+
+    (Classifier is compatible with OpMLPPredict)
+    """
+
+    NumHiddenLayers = InputSlot()
+    SizeHiddenLayers = InputSlot()
+
+    _dbn = None
+    _layers = []
+
     @classmethod
     def build(cls, d, parent=None, graph=None, workingdir=None):
         """
@@ -33,45 +48,44 @@ class OpDeepTrain(OpTrain, Classification):
             d["num_hidden_layers"] = <int>
             d["size_hidden_layers"] = <int>
         """
-        op = cls(parent=parent, graph=graph)
+        operator = cls(parent=parent, graph=graph)
 
-        op._num_hidden_layers = d["num_hidden_layers"]
-        op._size_hidden_layers = d["size_hidden_layers"]
+        operator.NumHiddenLayers.setValue(d["num_hidden_layers"])
+        operator.SizeHiddenLayers.setValue(d["size_hidden_layers"])
 
-        return op
+        return operator
 
     def __init__(self, *args, **kwargs):
         super(OpDeepTrain, self).__init__(*args, **kwargs)
 
-        self._opTrainData = OpDataset(parent=self)
-        self._opTrainData.Input.connect(self.Train)
+        self._train_data = OpDataset(parent=self)
+        self._train_data.Input.connect(self.Train)
 
-        self._opValidData = OpDataset(parent=self)
-        self._opValidData.Input.connect(self.Valid)
+        self._valid_data = OpDataset(parent=self)
+        self._valid_data.Input.connect(self.Valid)
 
     def setupOutputs(self):
         super(OpDeepTrain, self).setupOutputs()
 
-        self._configureLayers()
+        self._configure_layers()
 
-    def execute(self, slot, subregion, roi, result):
+    def execute(self, slot, _, roi, result):
         self._pretrain()
-        self._trainAll()
-        result[0] = self._nn
+        self._train_all()
+        result[0] = self._dbn
 
-    def _configureLayers(self):
+    def setInSlot(self, slot, subindex, roi, value):
+        raise NotImplementedError()
+
+    def _configure_layers(self):
+        """
+        create all the RBM layers according to configuration
+        """
         nvis = self.Train[0].meta.shape[1]
         layers = []
-        layer_sizes = self._getLayerSizeIterator()
-        for i in range(self._num_hidden_layers):
+        layer_sizes = get_layer_size_iterator(self.SizeHiddenLayers.value)
+        for _ in range(self.NumHiddenLayers.value):
             nhid = layer_sizes.next()
-            """
-            layer = rbm.GaussianBinaryRBM(rbm_energy.grbm_type_1(),
-                                          nvis=nvis, nhid=nhid,
-                                          irange=.1,
-                                          learn_sigma=True,
-                                          init_sigma=.1)
-            """
             layer = rbm.RBM(nvis=nvis, nhid=nhid,
                             irange=4, init_bias_hid=4,
                             init_bias_vis=0,
@@ -85,120 +99,140 @@ class OpDeepTrain(OpTrain, Classification):
         self._layers = layers
 
     def _pretrain(self):
-        # corruptor = corruption.GaussianCorruptor(stdev=.05)
-        # cost = ebm_estimation.SMD(corruptor=corruptor)
+        """
+        run greedy pretraining on all RBM layers
+        """
         cost = ebm_estimation.CDk(1)
         # cost = ebm_estimation.SML(10, 5)
 
-        ds = self._opTrainData
+        dataset = self._train_data
 
-        def getTransform(layers):
-            tds = transformer_dataset.TransformerDataset(
-                raw=ds,
+        def get_transform(layers):
+            """
+            closure for mapping the original dataset through pretrained layers
+            """
+            transformed_dataset = transformer_dataset.TransformerDataset(
+                raw=dataset,
                 transformer=blocks.StackedBlocks(layers=layers))
-            return tds
+            return transformed_dataset
 
-        tds = ds
+        transformed_dataset = dataset
         for i, layer in enumerate(self._layers):
-            if not self._isPretrainable(layer):
+            if not self._is_pretrainable(layer):
                 continue
 
-            logger.info("============ TRAINING UNSUPERVISED ============")
-            logger.info("============        Layer {}        ============"
-                        "".format(i))
+            LOGGER.info("============ TRAINING UNSUPERVISED ============")
+            LOGGER.info("============        Layer %d        ============", i)
 
             channel = "train_reconstruction_error"
 
-            lr = learning_rule.Momentum(init_momentum=.5)
             lra = sgd.MonitorBasedLRAdjuster(channel_name=channel)
             keep = best_params.MonitorBasedSaveBest(
                 channel_name=channel, store_best_model=True)
             ext = [lra, keep]
 
-            epochs = 200
-            tc = getTerminationCriteria(epochs=epochs, channel=channel)
+            criteria = get_termination_criteria(epochs=200, channel=channel)
 
-            trainer = sgd.SGD(learning_rate=.05, batch_size=50,
-                              learning_rule=lr,
-                              termination_criterion=tc,
-                              monitoring_dataset={'train': tds},
-                              monitor_iteration_mode="sequential",
-                              monitoring_batch_size=1000,
-                              cost=cost,
-                              seed=None,
-                              train_iteration_mode='sequential')
+            algorithm = sgd.SGD(learning_rate=.05, batch_size=50,
+                                learning_rule=learning_rule.Momentum(
+                                    init_momentum=.5),
+                                termination_criterion=criteria,
+                                monitoring_dataset={'train':
+                                                    transformed_dataset},
+                                monitor_iteration_mode="sequential",
+                                monitoring_batch_size=1000,
+                                cost=cost,
+                                seed=None,
+                                train_iteration_mode='sequential')
 
-            t = train.Train(dataset=tds, model=layer,
-                            algorithm=trainer,
-                            extensions=ext)
-            t.main_loop()
+            trainer = train.Train(dataset=transformed_dataset, model=layer,
+                                  algorithm=algorithm,
+                                  extensions=ext)
+            trainer.main_loop()
 
             # set best parameters to layer
-            params = keep.best_model.get_param_values()
-            layer.set_param_values(params)
-            best_cost = keep.best_cost
-            logger.info("Restoring model with cost {}".format(best_cost))
+            layer.set_param_values(keep.best_model.get_param_values())
+            LOGGER.info("Restoring model with cost %f", keep.best_cost)
 
-            tds = getTransform(self._layers[:i+1])
+            transformed_dataset = get_transform(self._layers[:i+1])
 
-    def _trainAll(self):
-        logger.info("============ TRAINING SUPERVISED ============")
+    def _train_all(self):
+        """
+        supervised training (after unsupervised pretraining)
+        """
+        LOGGER.info("============ TRAINING SUPERVISED ============")
         nvis = self.Train[0].meta.shape[1]
-        ds = self._opTrainData
-        vds = self._opValidData
+        tds = self._train_data
+        vds = self._valid_data
 
         channel = "valid_output_misclass"
-        epochs = 200
 
-        tc = getTerminationCriteria(epochs=epochs, channel=channel)
+        criteria = get_termination_criteria(epochs=200, channel=channel)
 
-        trainer = bgd.BGD(line_search_mode='exhaustive',
-                          batch_size=1000,
-                          monitoring_dataset={'valid': vds},
-                          monitoring_batch_size=1000,
-                          termination_criterion=tc,
-                          seed=None)
+        algorithm = bgd.BGD(line_search_mode='exhaustive',
+                            batch_size=1000,
+                            monitoring_dataset={'valid': vds},
+                            monitoring_batch_size=1000,
+                            termination_criterion=criteria,
+                            seed=None)
 
         layers = self._layers
 
-        def layerMapping((index, layer)):
-            if not self._isPretrainable(layer):
+        def layer_mapping(index, layer):
+            """
+            tell MLP that RBM layers are pretrained
+            """
+            if not self._is_pretrainable(layer):
                 return layer
             name = "{}_{:02d}".format(layer.__class__.__name__, index)
             return mlp.PretrainedLayer(layer_name=name,
                                        layer_content=layer)
-        layers = map(layerMapping, enumerate(layers))
+        layers = [layer_mapping(index, layer)
+                  for index, layer in enumerate(layers)]
 
-        nn = mlp.MLP(layers, nvis=nvis)
+        dbn = mlp.MLP(layers, nvis=nvis)
 
-        trainer.setup(nn, ds)
-        while True:
-            trainer.train(dataset=ds)
-            nn.monitor.report_epoch()
-            nn.monitor()
-            if not trainer.continue_learning(nn):
-                break
-        self._nn = nn
+        trainer = train.Train(dataset=tds, model=dbn,
+                              algorithm=algorithm,
+                              extensions=[])
+        trainer.main_loop()
 
-    def _getLayerSizeIterator(self):
-        try:
-            i = iter(self._size_hidden_layers)
-        except TypeError:
-            # layer size is a single integer
-            i = repeat(self._size_hidden_layers)
+        self._dbn = dbn
 
-        while True:
-            yield i.next()
-
-    def _isPretrainable(self, layer):
+    @staticmethod
+    def _is_pretrainable(layer):
+        """
+        can this layer be pretrained?
+        """
         return isinstance(layer, rbm.RBM)
 
 
-def getTerminationCriteria(epochs=None, channel=None):
-    tc = []
+def get_layer_size_iterator(int_or_iterable):
+    """
+    get an iterator for different inputs:
+        iterable -> iterate over iterable
+        other type -> repeat this type ad infinitum
+    """
+    try:
+        iter_ = iter(int_or_iterable)
+    except TypeError:
+        # layer size is a single integer
+        iter_ = repeat(int_or_iterable)
+
+    while True:
+        yield iter_.next()
+
+
+def get_termination_criteria(epochs=None, channel=None):
+    """
+    construct AND'ed termination criteria from
+        * max number of training epochs
+        * non-decrease in some monitored channel
+    """
+    criteria = []
     if epochs is not None:
-        tc.append(termination_criteria.EpochCounter(epochs))
+        criteria.append(termination_criteria.EpochCounter(epochs))
     if channel is not None:
-        tc.append(termination_criteria.MonitorBased(
+        criteria.append(termination_criteria.MonitorBased(
             channel_name=channel, prop_decrease=.00, N=20))
-    return termination_criteria.And(tc)
+    return termination_criteria.And(criteria)

@@ -1,7 +1,7 @@
 
 import tempfile
 
-from deeplearning.batch import runBatch
+from deeplearning.batch import run_batch
 
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
@@ -30,7 +30,7 @@ config = {"features": {"class": OpRecent,
 
 
 def main(workingdir):
-    runBatch(config, workingdir)
+    run_batch(config, workingdir)
 
 
 if __name__ == "__main__":

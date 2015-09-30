@@ -4,7 +4,7 @@ import unittest
 import tempfile
 import shutil
 
-from deeplearning.batch import runBatch
+from deeplearning.batch import run_batch
 
 from deeplearning.classifiers import OpSVMTrain
 from deeplearning.classifiers import OpSVMPredict
@@ -34,7 +34,7 @@ class TestMLPRegression(unittest.TestCase):
                   "predict": {"class": OpSVMPredict},
                   "report": {"class": [OpClassificationReport,
                                        OpRegressionReport]}}
-        runBatch(config, self.wd)
+        run_batch(config, self.wd)
 
     def tearDown(self):
         shutil.rmtree(self.wd)
