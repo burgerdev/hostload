@@ -9,6 +9,11 @@ from deeplearning.classifiers import OpMLPPredict
 from deeplearning.data import OpStreamingHdf5Reader
 
 from deeplearning.features import OpRecent
+from deeplearning.features import OpSimpleCombiner
+from deeplearning.features import OpMean
+from deeplearning.features import OpFairness
+from deeplearning.features import OpLinearWeightedMean
+from deeplearning.features import OpDiff
 
 from deeplearning.report import OpRegressionReport
 
@@ -17,14 +22,23 @@ from deeplearning.targets import OpExponentiallySegmentedPattern
 from pylearn2.models import mlp
 
 
-config = {"features": {"class": OpRecent,
-                       "window_size": [1, 2, 4, 8, 16, 32]},
+window_size = 30
+
+features = {"class": OpSimpleCombiner,
+            "operators": ({"class": OpRecent, "window_size": window_size},
+                          {"class": OpMean, "window_size": window_size},
+                          {"class": OpLinearWeightedMean,
+                           "window_size": window_size},
+                          {"class": OpFairness, "window_size": window_size},
+                          {"class": OpDiff, "window_size": window_size})}
+
+config = {"features": features,
           "target": {"class": OpExponentiallySegmentedPattern,
-                     "baseline_size": [8, 64, 256, 1024],
+                     "baseline_size": [8, 16, 32, 64],
                      "num_segments": 1},
           "train": {"class": OpMLPTrain,
-                    "layer_classes": (mlp.Sigmoid, mlp.Sigmoid),
-                    "layer_sizes": (20, 10)},
+                    "layer_classes": (mlp.Sigmoid, mlp.Sigmoid, mlp.Sigmoid),
+                    "layer_sizes": (25, 20, 15)},
           "predict": {"class": OpMLPPredict},
           "report": {"class": OpRegressionReport}}
 
