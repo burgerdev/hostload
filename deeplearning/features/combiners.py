@@ -5,11 +5,8 @@ from lazyflow.operator import InputSlot
 from lazyflow.operator import OutputSlot
 from lazyflow.operators.generic import OpMultiArrayStacker
 
-try:
-    from deeplearning.tools import Buildable
-except ImportError:
-    class Buildable(object):
-        pass
+from deeplearning.tools import Buildable
+
 
 class OpSimpleCombiner(Operator, Buildable):
     Input = InputSlot()
