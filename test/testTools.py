@@ -14,6 +14,7 @@ from deeplearning.tools.serialization import dumps
 from deeplearning.tools.serialization import loads
 
 from deeplearning.tools.generic import OpNormalize
+from deeplearning.tools.generic import OpChangeDtype
 
 
 class TestTools(unittest.TestCase):
@@ -98,13 +99,23 @@ class TestTools(unittest.TestCase):
         np.testing.assert_almost_equal(y.mean(), x.mean())
         np.testing.assert_almost_equal(y.var(), x.var())
 
-        op.Mean.setValue(x.mean())
-        op.StdDev.setValue(np.sqrt(x.var()))
+        op = OpNormalize.build({"mean": x.mean(), "stddev": np.sqrt(x.var())},
+                               graph=Graph())
+        op.Input.setValue(x)
 
         y = op.Output[...].wait()
         np.testing.assert_almost_equal(y.mean(), 0)
         np.testing.assert_almost_equal(y.var(), 1)
 
+    def testChangeDtype(self):
+        x = np.random.randint(0, 255, size=(1000,)).astype(np.int)
+        x = vigra.taggedView(x, axistags='t')
+
+        op = OpChangeDtype.build({"dtype": np.float32}, graph=Graph())
+        op.Input.setValue(x)
+
+        y = op.Output[...].wait()
+        assert y.dtype == np.float32
 
 def contentEqual(a, b):
     return all(i in b for i in a) and all(i in a for i in b)

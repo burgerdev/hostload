@@ -19,6 +19,8 @@ from deeplearning.report import OpRegressionReport
 
 from deeplearning.targets import OpExponentiallySegmentedPattern
 
+from deeplearning.tools.generic import OpChangeDtype
+
 from pylearn2.models import mlp
 
 
@@ -40,7 +42,8 @@ config = {"features": features,
                     "layer_classes": (mlp.Sigmoid, mlp.Sigmoid, mlp.Sigmoid),
                     "layer_sizes": (25, 20, 15)},
           "predict": {"class": OpMLPPredict},
-          "report": {"class": OpRegressionReport}}
+          "report": {"class": OpRegressionReport},
+          "preprocessing": (OpChangeDtype,)}
 
 
 def main(workingdir):
