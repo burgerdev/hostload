@@ -19,7 +19,7 @@ from deeplearning.report import OpClassificationReport
 from deeplearning.report import OpRegressionReport
 
 
-class TestMLPRegression(unittest.TestCase):
+class TestBatch(unittest.TestCase):
     def setUp(self):
         self.wd = tempfile.mkdtemp(prefix="BatchRun_")
 
@@ -34,7 +34,7 @@ class TestMLPRegression(unittest.TestCase):
                   "predict": {"class": OpSVMPredict},
                   "report": {"class": [OpClassificationReport,
                                        OpRegressionReport]}}
-        run_batch(config, self.wd)
+        run_batch(config, self.wd, continue_on_failure=False)
 
     def tearDown(self):
         shutil.rmtree(self.wd)

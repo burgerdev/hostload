@@ -5,8 +5,10 @@ from lazyflow.operators.ioOperators import OpStreamingHdf5Reader as _OpHdf5
 from lazyflow.operators import OpArrayPiper as _OpPiper
 from lazyflow.operator import OutputSlot
 
+from deeplearning.tools import Buildable
 
-class OpStreamingHdf5Reader(_OpHdf5):
+
+class OpStreamingHdf5Reader(_OpHdf5, Buildable):
     Output = OutputSlot()
     close_on_del = True
 
@@ -29,7 +31,7 @@ class OpStreamingHdf5Reader(_OpHdf5):
         super(OpStreamingHdf5Reader, self).cleanUp()
 
 
-class OpArrayPiper(_OpPiper):
+class OpArrayPiper(_OpPiper, Buildable):
     @classmethod
     def build(cls, config, graph=None, parent=None, workingdir=None):
         op = cls(graph=graph, parent=parent)

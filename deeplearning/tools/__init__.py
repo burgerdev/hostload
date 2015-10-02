@@ -1,4 +1,5 @@
 from .abcs import Buildable
+from .abcs import buildOperator
 
 from .config import expandDict
 from .config import listifyDict

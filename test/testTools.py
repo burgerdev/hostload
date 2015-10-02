@@ -6,9 +6,14 @@ import numpy as np
 import vigra
 
 from lazyflow.graph import Graph
+from lazyflow.operator import Operator
+from lazyflow.operators import OpArrayPiper
+
+from deeplearning.data.wrappers import OpArrayPiper as OpBuildableArrayPiper
 
 from deeplearning.tools import listifyDict
 from deeplearning.tools import expandDict
+from deeplearning.tools import buildOperator
 
 from deeplearning.tools.serialization import dumps
 from deeplearning.tools.serialization import loads
@@ -66,6 +71,22 @@ class TestTools(unittest.TestCase):
             pprint(l2)
             raise AssertionError("expandDict produced unexpected dicts")
 
+    def testBuildOperator(self):
+        class NotBuildable(OpArrayPiper):
+            @classmethod
+            def build(cls, config, parent=None, graph=None, workingdir=None):
+                return cls(parent=parent, graph=graph)
+
+        configs = ({"class": OpBuildableArrayPiper},
+                   {"class": NotBuildable},
+                   OpArrayPiper)
+        kws = ({"graph": Graph()}, {"graph": Graph(), "workingdir": "temp"})
+
+        for config in configs:
+            for kwargs in kws:
+                op = buildOperator(config, **kwargs)
+                assert isinstance(op, Operator), str(op)
+
     def testSerialization(self):
         from lazyflow.operator import Operator
         from deeplearning.data import OpPickleCache
@@ -116,6 +137,12 @@ class TestTools(unittest.TestCase):
 
         y = op.Output[...].wait()
         assert y.dtype == np.float32
+
+        op.Dtype.setValue(np.int)
+
+        y = op.Output[...].wait()
+        assert y.dtype == np.int
+
 
 def contentEqual(a, b):
     return all(i in b for i in a) and all(i in a for i in b)

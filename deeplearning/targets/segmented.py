@@ -6,9 +6,10 @@ from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
 
 from deeplearning.tools import Regression
+from deeplearning.tools import Buildable
 
 
-class OpExponentiallySegmentedPattern(Operator, Regression):
+class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
     Input = InputSlot()
     BaselineSize = InputSlot(value=60)
     NumSegments = InputSlot(value=4)

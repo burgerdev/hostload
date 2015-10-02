@@ -62,6 +62,11 @@ class OpRawWindowed(OpWindow):
 
 
 class OpDiff(OpWindow):
+    @classmethod
+    def build(cls, config, parent=None, graph=None, workingdir=None):
+        operator = cls(parent=parent, graph=graph)
+        return operator
+
     def __init__(self, *args, **kwargs):
         super(OpDiff, self).__init__(*args, **kwargs)
         self.WindowSize.setValue(2)

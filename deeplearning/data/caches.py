@@ -1,7 +1,6 @@
 
 import logging
 import os
-import atexit
 import cPickle as pkl
 
 import h5py
@@ -9,10 +8,12 @@ import numpy as np
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 
-logger = logging.getLogger(__name__)
+from deeplearning.tools import Buildable
+
+LOGGER = logging.getLogger(__name__)
 
 
-class _Cache(Operator):
+class _Cache(Operator, Buildable):
     Input = InputSlot()
     WorkingDir = InputSlot()
     Output = OutputSlot()
@@ -58,7 +59,7 @@ class OpPickleCache(_Cache):
             try:
                 pkl.dump(result, f)
             except Exception as err:
-                logger.error("Could not dump object:\n\t{}".format(str(err)))
+                LOGGER.error("Could not dump object:\n\t{}".format(str(err)))
 
 
 class OpHDF5Cache(_Cache):

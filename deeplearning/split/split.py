@@ -5,13 +5,16 @@ import vigra
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
 
+from deeplearning.tools import Buildable
+
 
 class SplitTypes:
     TRAIN = 0
     VALID = 1
     TEST = 2
 
-class OpTrainTestSplit(Operator):
+
+class OpTrainTestSplit(Operator, Buildable):
 
     # expects (t, c) inputs
     #   - t indexes time slices

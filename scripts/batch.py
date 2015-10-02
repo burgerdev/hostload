@@ -32,7 +32,7 @@ features = {"class": OpSimpleCombiner,
                           {"class": OpLinearWeightedMean,
                            "window_size": window_size},
                           {"class": OpFairness, "window_size": window_size},
-                          {"class": OpDiff, "window_size": window_size})}
+                          {"class": OpDiff})}
 
 config = {"features": features,
           "target": {"class": OpExponentiallySegmentedPattern,
@@ -47,7 +47,7 @@ config = {"features": features,
 
 
 def main(workingdir):
-    run_batch(config, workingdir)
+    run_batch(config, workingdir, continue_on_failure=False)
 
 
 if __name__ == "__main__":

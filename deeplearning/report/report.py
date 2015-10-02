@@ -9,10 +9,11 @@ from lazyflow.operator import Operator, InputSlot, OutputSlot
 from deeplearning.tools.serialization import dumps
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
+from deeplearning.tools import Buildable
 from deeplearning.split import SplitTypes
 
 
-class _OpReport(Operator):
+class _OpReport(Operator, Buildable):
     All = InputSlot(level=1)
     Description = InputSlot()
     WorkingDir = InputSlot()

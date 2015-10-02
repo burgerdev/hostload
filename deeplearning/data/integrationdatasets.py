@@ -7,13 +7,14 @@ from lazyflow.operators import OpReorderAxes
 
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
+from deeplearning.tools import Buildable
 
 
 TAU = 2*np.pi
 MAX_SEED = 4294967295
 
 
-class _BaseDataset(OpArrayPiperWithAccessCount):
+class _BaseDataset(OpArrayPiperWithAccessCount, Buildable):
     @classmethod
     def build(cls, d, graph=None, parent=None, workingdir=None):
         np.random.seed(hash(cls.__name__) % MAX_SEED)
@@ -41,7 +42,7 @@ class OpNoisySine(_BaseDataset):
         return data
 
 
-class OpPipedTarget(OpReorderAxes, Regression):
+class OpPipedTarget(OpReorderAxes, Regression, Buildable):
     @classmethod
     def build(cls, d, graph=None, parent=None, workingdir=None):
         op = cls(parent=parent, graph=graph)
@@ -60,7 +61,7 @@ class OpShuffledLinspace(_BaseDataset):
         return data
 
 
-class OpFeatures(OpReorderAxes):
+class OpFeatures(OpReorderAxes, Buildable):
     @staticmethod
     def build(d, graph=None, parent=None, workingdir=None):
         op = OpFeatures(parent=parent, graph=graph)
@@ -68,7 +69,7 @@ class OpFeatures(OpReorderAxes):
         return op
 
 
-class _OpTarget(OpArrayPiperWithAccessCount):
+class _OpTarget(OpArrayPiperWithAccessCount, Buildable):
     @classmethod
     def build(cls, d, graph=None, parent=None, workingdir=None):
         op = cls(parent=parent, graph=graph)
@@ -90,7 +91,7 @@ class OpTarget(_OpTarget, Classification):
     pass
 
 
-class OpRegTarget(OpArrayPiperWithAccessCount, Regression):
+class OpRegTarget(OpArrayPiperWithAccessCount, Regression, Buildable):
     @staticmethod
     def build(d, graph=None, parent=None, workingdir=None):
         op = OpRegTarget(parent=parent, graph=graph)

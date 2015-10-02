@@ -51,12 +51,6 @@ class OpSimpleCombiner(Operator, Buildable):
         self._operators = operators
         self.Output.connect(combiner.Output)
 
-    def setupOutputs(self):
-        print(self.Input.meta.shape)
-        for op in self._operators:
-            print(op)
-            print(op.Output.meta.shape)
-
     def propagateDirty(self, slot, subindex, roi):
         # is propagated internally
         pass

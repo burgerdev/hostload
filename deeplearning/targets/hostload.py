@@ -5,8 +5,10 @@ from lazyflow.operators import OpReorderAxes
 from .converters import OpDiscretize
 from .segmented import OpExponentiallySegmentedPattern
 
+from deeplearning.tools import Buildable
 
-class OpHostloadTarget(Operator):
+
+class OpHostloadTarget(Operator, Buildable):
     Input = InputSlot()
     WindowSize = InputSlot()
     NumLevels = InputSlot()

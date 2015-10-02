@@ -5,8 +5,10 @@ import vigra
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
 
+from deeplearning.tools import Buildable
 
-class OpRecent(Operator):
+
+class OpRecent(Operator, Buildable):
     Input = InputSlot()
     WindowSize = InputSlot()
 

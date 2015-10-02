@@ -4,6 +4,7 @@ tools for batch processing
 
 import os
 import logging
+import traceback
 
 from deeplearning.tools import listifyDict
 from deeplearning.tools import expandDict
@@ -43,12 +44,20 @@ def run_batch(config, workingdir, continue_on_failure=True):
         config["workingdir"] = full_path
         try:
             workflow = Workflow.build(config)
+            workflow.run()
         except IncompatibleTargets:
             LOGGER.info("IncompatibleTargets in run %s", dirname)
-
-        try:
-            workflow.run()
+            err_file_name = os.path.join(full_path, "SKIPPED")
+            err_msg = "IncompatibleTargets raised"
         except Exception as err:
             LOGGER.error("Error in run %s:\n\t%s", dirname, str(err))
+            err_file_name = os.path.join(full_path, "FAILURE")
+            err_msg = traceback.format_exc()
             if not continue_on_failure:
                 raise
+        else:
+            err_file_name = os.path.join(full_path, "SUCCESS")
+            err_msg = ""
+
+        with open(err_file_name, "w") as err_file:
+            err_file.write(err_msg)
