@@ -9,11 +9,17 @@ from deeplearning.tools import Buildable
 
 
 class OpSimpleCombiner(Operator, Buildable):
+    """
+    combines a list of feature operators into one
+    """
     Input = InputSlot()
     Output = OutputSlot()
 
     @classmethod
     def build(cls, config, parent=None, graph=None, workingdir=None):
+        """
+        config["operators"] = <tuple of operator classes or config dicts>
+        """
         to_combine = config["operators"]
         operator = cls(to_combine, parent=parent, graph=graph)
         return operator
