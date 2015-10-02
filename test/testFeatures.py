@@ -27,14 +27,14 @@ class TestOpMean(unittest.TestCase):
         op.Input.setValue(self.data)
 
         y = op.Output[...].wait()
-        np.testing.assert_array_equal(y.shape, (7,))
+        np.testing.assert_array_equal(y.shape, (7, 1))
 
-        np.testing.assert_array_almost_equal(y, exp)
+        np.testing.assert_array_almost_equal(y.squeeze(), exp)
 
         y = op.Output[1:4].wait()
-        np.testing.assert_array_equal(y.shape, (3,))
+        np.testing.assert_array_equal(y.shape, (3, 1))
 
-        np.testing.assert_array_almost_equal(y, exp[1:4])
+        np.testing.assert_array_almost_equal(y.squeeze(), exp[1:4])
 
     def getOp(self):
         op = OpMean(graph=Graph())

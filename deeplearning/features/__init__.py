@@ -6,3 +6,5 @@ from .filter import OpMean
 from .filter import OpLinearWeightedMean
 
 from .recent import OpRecent
+
+from .combiners import OpSimpleCombiner

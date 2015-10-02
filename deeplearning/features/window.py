@@ -15,11 +15,15 @@ class OpWindow(Operator):
     @classmethod
     def build(cls, config, parent=None, graph=None, workingdir=None):
         op = cls(parent=parent, graph=graph)
+        if "window_size" in config:
+            op.WindowSize.setValue(config["window_size"])
         return op
 
     def setupOutputs(self):
-        self.Output.meta.shape = (self.Input.meta.shape[0],)
-        self.Output.meta.axistags = vigra.defaultAxistags('t')
+        assert (len(self.Input.meta.shape) <= 2 or
+                np.prod(self.Input.meta.shape[1:]) == 1)
+        self.Output.meta.shape = (self.Input.meta.shape[0], 1)
+        self.Output.meta.axistags = vigra.defaultAxistags('tc')
         self.Output.meta.dtype = np.float32
 
     def execute(self, slot, subindex, roi, result):
@@ -34,14 +38,16 @@ class OpWindow(Operator):
         x = x.withAxes('t').view(np.ndarray)
         x = np.concatenate((padding, x))
 
-        self.applyWindowFunction(x, window, result)
+        res_view = vigra.taggedView(result, axistags=self.Output.meta.axistags)
+        res_view = res_view.withAxes('t')
+
+        self.applyWindowFunction(x, window, res_view)
 
     def propagateDirty(self, slot, subindex, roi):
-        n = self.Output.meta.shape[0]
-        m = min(roi.stop[0] + n - 1, n)
-        new_stop = (m,)
-        new_roi = SubRegion(self.Output, start=roi.start, stop=new_stop)
-        self.Output.setDirty(new_roi)
+        roi = roi.copy()
+        num_obs = self.Output.meta.shape[0]
+        roi.stop[0] = min(roi.stop[0] + num_obs - 1, num_obs)
+        self.Output.setDirty(roi)
 
     @classmethod
     def applyWindowFunction(cls, input_array, window_size, output_array):
