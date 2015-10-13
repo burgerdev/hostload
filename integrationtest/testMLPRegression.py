@@ -18,6 +18,7 @@ from pylearn2.models import mlp
 
 from deeplearning.data.integrationdatasets import OpNoisySine
 from deeplearning.data.integrationdatasets import OpRandomUnitSquare
+from deeplearning.data.integrationdatasets import OpMackeyGlass
 from deeplearning.data.integrationdatasets import OpNormTarget
 from deeplearning.data.integrationdatasets import OpFeatures
 
@@ -75,17 +76,34 @@ class TestMLPRegression(object):
             warnings.simplefilter("ignore")
             w.run()
 
+    def testMG(self):
+        c = config.copy()
+        c["source"] = {"class": OpMackeyGlass}
+        c["train"] = {"class": OpMLPTrain,
+                      "layer_classes": (mlp.Sigmoid,),
+                      "layer_sizes": (100,)}
+        c["features"] = {"class": OpRecent, "window_size": 128}
+        c["target"] = {"class": OpExponentiallySegmentedPattern,
+                       "baseline_size": 32,
+                       "num_segments": 1}
+        w = Workflow.build(c, workingdir=self.wd)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            w.run()
+
 
 if __name__ == "__main__":
-    from matplotlib import pyplot as plt
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
     parser.add_argument("--h5file",
                         help="1D hdf5 file formatted as file.h5:path_in_file",
                         default=None)
-    parser.add_argument("--diff", action="store_true",
-                        help="use np.diff of input",
+    parser.add_argument("--norm", action="store_true",
+                        help="run test on OpNormTarget",
+                        default=False)
+    parser.add_argument("--mg", action="store_true",
+                        help="run test on Mackey-Glass target",
                         default=False)
 
     args = parser.parse_args()
@@ -97,24 +115,17 @@ if __name__ == "__main__":
                             "filename": filename,
                             "internal_path": internal}
 
-    if args.diff:
-        from deeplearning.features import OpDiff
-        config["preprocessing"] = [{"class": OpDiff}]
-
     test = TestMLPRegression()
     test.remove_tempdir = False
-    test.setUp()
-    try:
-        w = test.testRun()
-    finally:
-        test.tearDown()
 
-    pred = w._predictionCache.Output[...].wait().squeeze()
-    target = w._target.Output[...].wait().squeeze()
-    orig = w._source.Output[...].wait().squeeze()
+    tests = {"norm": test.testRun, "mg": test.testMG}
 
-    plt.plot(target, 'b')
-    plt.plot(pred, 'r+')
-    plt.plot(orig, 'k.')
-    plt.legend(("ground truth", "prediction", "original data"))
-    plt.show()
+    for key in tests:
+        if not getattr(args, key, False):
+            continue
+        test.setUp()
+        try:
+            w = tests[key]()
+        finally:
+            test.tearDown()
+

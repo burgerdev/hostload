@@ -9,6 +9,8 @@ from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 from deeplearning.tools import Buildable
 
+from .rk4 import default_mackey_glass_series
+
 
 TAU = 2*np.pi
 MAX_SEED = 4294967295
@@ -132,3 +134,13 @@ class OpNormTarget(OpRegTarget):
     def execute(self, slot, subindex, roi, result):
         data = self.Input[roi.start[0]:roi.stop[0]].wait()
         result[:, 0] = np.sqrt(np.square(data).sum(axis=1)/2.0)
+
+
+class OpMackeyGlass(_BaseDataset):
+    def create_dataset(self, config, rng):
+        data = default_mackey_glass_series()
+        upper = data.max()
+        lower = data.min()
+        data = (data - lower)/(upper - lower)
+        data = vigra.taggedView(data, axistags="tc").withAxes('t')
+        return data
