@@ -8,7 +8,7 @@ from deeplearning.tools.serialization import dumps
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 from deeplearning.tools import IncompatibleTargets
-from deeplearning.tools import buildOperator
+from deeplearning.tools import build_operator
 
 from deeplearning.data.caches import OpPickleCache
 from deeplearning.data.caches import OpHDF5Cache
@@ -48,7 +48,7 @@ class Workflow(object):
             assert not hasattr(w, attr)
 
             if key == "preprocessing":
-                value = [buildOperator(subdict, **kwargs)
+                value = [build_operator(subdict, **kwargs)
                          for subdict in d[key]]
             else:
                 subdir = os.path.join(workingdir, key)
@@ -62,7 +62,7 @@ class Workflow(object):
                         raise
 
                 kwargs["workingdir"] = subdir
-                value = buildOperator(d[key], **kwargs)
+                value = build_operator(d[key], **kwargs)
 
             setattr(w, attr, value)
 

@@ -17,6 +17,9 @@ from deeplearning.targets import OpExponentiallySegmentedPattern
 from pylearn2.models import mlp
 
 from deeplearning.data.integrationdatasets import OpNoisySine
+from deeplearning.data.integrationdatasets import OpRandomUnitSquare
+from deeplearning.data.integrationdatasets import OpNormTarget
+from deeplearning.data.integrationdatasets import OpFeatures
 
 
 config = {"class": Workflow,
@@ -27,7 +30,6 @@ config = {"class": Workflow,
                      "baseline_size": 10,
                      "num_segments": 1},
           "split": {"class": OpTrainTestSplit},
-          "train": {"class": OpMLPTrain},
           "classifierCache": {"class": OpPickleCache},
           "predict": {"class": OpMLPPredict},
           "predictionCache": {"class": OpHDF5Cache},
@@ -36,7 +38,8 @@ config = {"class": Workflow,
 
 
 class TestMLPRegression(object):
-    remove_tempdir = True
+    # remove_tempdir = True
+    remove_tempdir = False
     def setUp(self):
         self.wd = tempfile.mkdtemp(prefix="MLPReg_")
 
@@ -52,16 +55,25 @@ class TestMLPRegression(object):
         c["train"] = {"class": OpMLPTrain,
                       "layer_classes": (mlp.Sigmoid, mlp.Sigmoid),
                       "layer_sizes": (20, 10)}
-        c["predict"] = {"class": OpMLPPredict}
         w = Workflow.build(c, workingdir=self.wd)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             w.run()
-        self.__verify(w)
         return w
 
-    def __verify(self, w):
-        pass
+    def testNormTarget(self):
+        c = config.copy()
+        c["source"] = {"class": OpRandomUnitSquare,
+                       "shape": (10000, 2)}
+        c["train"] = {"class": OpMLPTrain,
+                      "layer_classes": (mlp.Sigmoid,),
+                      "layer_sizes": (1,)}
+        c["features"] = {"class": OpFeatures}
+        c["target"] = {"class": OpNormTarget}
+        w = Workflow.build(c, workingdir=self.wd)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            w.run()
 
 
 if __name__ == "__main__":

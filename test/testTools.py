@@ -13,7 +13,7 @@ from deeplearning.data.wrappers import OpArrayPiper as OpBuildableArrayPiper
 
 from deeplearning.tools import listifyDict
 from deeplearning.tools import expandDict
-from deeplearning.tools import buildOperator
+from deeplearning.tools import build_operator
 
 from deeplearning.tools.serialization import dumps
 from deeplearning.tools.serialization import loads
@@ -71,7 +71,7 @@ class TestTools(unittest.TestCase):
             pprint(l2)
             raise AssertionError("expandDict produced unexpected dicts")
 
-    def testBuildOperator(self):
+    def testbuild_operator(self):
         class NotBuildable(OpArrayPiper):
             @classmethod
             def build(cls, config, parent=None, graph=None, workingdir=None):
@@ -84,7 +84,7 @@ class TestTools(unittest.TestCase):
 
         for config in configs:
             for kwargs in kws:
-                op = buildOperator(config, **kwargs)
+                op = build_operator(config, **kwargs)
                 assert isinstance(op, Operator), str(op)
 
     def testSerialization(self):

@@ -7,14 +7,10 @@ from .abcs import OpTrain
 from .abcs import OpPredict
 
 from deeplearning.tools import Classification
+from deeplearning.tools import Regression
 
 
 class OpStateTrain(OpTrain, Classification):
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        op = OpStateTrain(graph=graph, parent=parent)
-        return op
-
     def execute(self, slot, subindex, roi, result):
         assert len(self.Train) == 2, "need data and target"
         assert len(self.Valid) == 2, "need data and target"
@@ -42,11 +38,6 @@ class OpStateTrain(OpTrain, Classification):
 
 
 class OpStatePredict(OpPredict, Classification):
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        op = OpStatePredict(graph=graph, parent=parent)
-        return op
-
     def execute(self, slot, subindex, roi, result):
         a = roi.start[0]
         b = roi.stop[0]
@@ -60,3 +51,26 @@ class OpStatePredict(OpPredict, Classification):
         classes = np.round(X[:, idx]).astype(np.int)
         for i, c in enumerate(range(roi.start[1], roi.stop[1])):
             result[:, i] = classes == c
+
+
+class OpStateTrainRegression(OpTrain, Regression):
+    @classmethod
+    def get_default_config(cls):
+        config = super(OpStateTrainRegression, cls).get_default_config()
+        config["index"] = 0
+        return config
+
+    def execute(self, slot, subindex, roi, result):
+        result[0] = self._index
+
+
+class OpStatePredictRegression(OpPredict, Regression):
+    def execute(self, slot, subindex, roi, result):
+        a = roi.start[0]
+        b = roi.stop[0]
+        idx = self.Classifier[...].wait()[0]
+
+        new_roi = SubRegion(self.Input, start=(a, idx), stop=(b, idx+1))
+        req = self.Input.get(new_roi)
+        req.writeInto(result)
+        req.block()

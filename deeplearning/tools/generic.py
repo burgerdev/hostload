@@ -10,6 +10,13 @@ from lazyflow.operators import OpArrayPiper
 from .abcs import Buildable
 
 
+class IncompatibleDataset(Exception):
+    """
+    raise when a downstream operator is not compatible with upstream data
+    """
+    pass
+
+
 class OpNormalize(Operator, Buildable):
     """
     perform stochastic normalization with given mean and standard deviation
