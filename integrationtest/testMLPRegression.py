@@ -38,8 +38,8 @@ config = {"class": Workflow,
 
 
 class TestMLPRegression(object):
-    # remove_tempdir = True
-    remove_tempdir = False
+    remove_tempdir = True
+    # remove_tempdir = False
     def setUp(self):
         self.wd = tempfile.mkdtemp(prefix="MLPReg_")
 

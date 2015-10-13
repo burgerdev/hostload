@@ -116,12 +116,14 @@ class OpMLPTrain(OpTrain, Classification, Regression):
 
         last_dim = self._nn.get_input_space().dim
         for init, layer in zip(iter_, self._nn.layers):
-            if hasattr(layer, "dim"):
-                next_dim = layer.dim
-            elif hasattr(layer, "output_channels"):
-                next_dim = layer.output_channels
-            else:
-                raise ValueError("don't know where the layer stores its dim")
+            next_dim = layer.get_output_space().dim
+#            if hasattr(layer, "dim"):
+#                next_dim = layer.dim
+#            elif hasattr(layer, "output_channels"):
+#                next_dim = layer.output_channels
+#            else:
+#                msg = "don't know where {} stores its dim".format(layer)
+#                raise ValueError(msg)
 
             init.init_layer(layer, nvis=last_dim, nhid=next_dim)
             last_dim = next_dim
