@@ -37,7 +37,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         config = OpTrain.get_default_config()
         config["layer_sizes"] = (20, 10)
         config["layer_classes"] = (mlp.Sigmoid, mlp.Sigmoid)
-        config["weight_initializer"] = {"class": WeightInitializer}
+        config["weight_initializer"] = {"class": NormalWeightInitializer}
         config["learning_rate"] = .1
         config["max_epochs"] = 40
         config["terminate_early"] = True

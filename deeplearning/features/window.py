@@ -85,3 +85,17 @@ class OpFairness(OpWindow):
         sums = np.convolve(input_array, sum_filter, mode='valid')
         squares_of_sums = np.square(sums)
         output_array[:] = squares_of_sums/sum_of_squares
+
+
+class OpGaussianSmoothing(OpWindow):
+    @classmethod
+    def applyWindowFunction(cls, input_array, window_size, output_array):
+        assert window_size % 2 == 1,\
+            "window size for gaussian kernel must be odd"
+        radius = (window_size - 1) / 2.0
+        sigma = radius / 3
+        x = np.linspace(-radius, radius, window_size)
+        filter_ = np.exp(-x**2/(2*sigma**2))
+        filter_ /= filter_.sum()
+        smoothed = np.convolve(input_array, filter_, mode='valid')
+        output_array[:] = smoothed.astype(output_array.dtype)
