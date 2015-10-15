@@ -6,6 +6,8 @@ import theano
 
 from itertools import repeat
 
+from lazyflow.operator import Operator, InputSlot
+
 from deeplearning.data import OpDataset
 from deeplearning.tools import Buildable
 from deeplearning.tools import build_operator
@@ -117,13 +119,8 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         last_dim = self._nn.get_input_space().dim
         for init, layer in zip(iter_, self._nn.layers):
             next_dim = layer.get_output_space().dim
-#            if hasattr(layer, "dim"):
-#                next_dim = layer.dim
-#            elif hasattr(layer, "output_channels"):
-#                next_dim = layer.output_channels
-#            else:
-#                msg = "don't know where {} stores its dim".format(layer)
-#                raise ValueError(msg)
+            if hasattr(init, "Input"):
+                init.Input.connect(self._opTrainData.Output)
 
             init.init_layer(layer, nvis=last_dim, nhid=next_dim)
             last_dim = next_dim
@@ -184,10 +181,17 @@ class OpMLPTrain(OpTrain, Classification, Regression):
                 raise IncompatibleDataset(msg)
 
 
+
+
 class WeightInitializer(Buildable):
     def __init__(self, *args, **kwargs):
         pass
 
+    def init_layer(self, layer, nvis=1, nhid=1):
+        raise NotImplementedError()
+
+
+class NormalWeightInitializer(WeightInitializer):
     @classmethod
     def get_default_config(cls):
         config = super(WeightInitializer, cls).get_default_config()
@@ -203,6 +207,103 @@ class WeightInitializer(Buildable):
         biases = np.zeros((nhid,), dtype=np.float32)
         biases[:] = self._bias
         layer.set_biases(biases)
+
+
+class FilterWeightInitializer(WeightInitializer):
+    @classmethod
+    def get_default_config(cls):
+        config = super(WeightInitializer, cls).get_default_config()
+        return config
+
+    def init_layer(self, layer, nvis=1, nhid=1):
+        weights = np.ones((nvis, nhid))
+        weights /= nvis
+        signs = np.random.randint(0, 3, size=weights.shape)
+        weights *= (signs-1)
+        weights = weights.astype(np.float32)
+        layer.set_weights(weights)
+        biases = np.random.random(size=(nhid,)).astype(np.float32)
+        layer.set_biases(biases)
+
+
+class _OperatorWeightInitializer(Operator, WeightInitializer):
+    Input = InputSlot(level=1)
+
+    def setupOutputs(self):
+        pass
+
+    def propagateDirty(self, slot, subindex, roi):
+        pass
+
+
+class PCAWeightInitializer(_OperatorWeightInitializer):
+    def init_layer(self, layer, nvis=1, nhid=1):
+        assert self.Input[0].ready(), "need dataset to compute PCA"
+        X = self.Input[0][...].wait()
+        weights, biases = self._pca(X, num_components=nhid)
+        weights = weights.astype(np.float32)
+        layer.set_weights(weights)
+        biases = biases.astype(np.float32)
+        layer.set_biases(biases)
+
+    def _pca(self, X, num_components=1):
+        X_mean = X.mean(axis=0)
+        X_centered = X - X_mean[np.newaxis, :]
+    
+        A = np.dot(X_centered.T, X_centered)
+        eigenvalues, eigenvectors = np.linalg.eig(A)
+        idx = np.argsort(eigenvalues)
+        idx = np.flipud(idx)
+        assert num_components <= len(idx)
+        idx = idx[:num_components]
+        eigenvectors = eigenvectors[:, idx]
+        constants = -np.dot(X_mean, eigenvectors)
+        return eigenvectors, constants
+
+
+class LeastSquaresWeightInitializer(_OperatorWeightInitializer):
+    def init_layer(self, layer, nvis=1, nhid=1):
+        assert self.Input.ready(), "need dataset to compute PCA"
+        X = self.Input[0][...].wait()
+        y = self.Input[1][...].wait().squeeze()
+        weights, biases = self._solve(X, y, num_components=nhid)
+        weights = weights.astype(np.float32)
+        layer.set_weights(weights)
+        biases = biases.astype(np.float32)
+        layer.set_biases(biases)
+
+    def _solve(self, X, y, num_components=1):
+        dim = X.shape[1]
+        #print("dim={}".format(dim))
+        assert num_components <= dim
+        assert len(X) == len(y) and len(y.shape) == 1
+
+        # generate random hyperplanes (A,b) that intersect [0,1]^dim at P
+        num_hyperplanes = min(num_components*10, len(X)/4)
+        # FIXME line below is biased
+        A = np.random.random(size=(num_hyperplanes, dim)) -.5
+        A_norms = np.sqrt(np.square(A).sum(axis=1, keepdims=True))
+        A /= A_norms
+        P = np.random.random(size=(num_hyperplanes, dim))
+        b = -(A*P).sum(axis=1)
+
+        def sigmoid(x):
+            return 1/(1+np.exp(-x))
+
+        # determine output weights by least squares fit
+        print("computing matrix")
+        M = sigmoid(np.dot(X, A.T) + b)
+        
+        print("done, matrix dims are {}".format(M.shape))
+        c = np.dot(np.linalg.pinv(M), y)
+
+        # take hyperplanes corresponding to large weights
+        importance = np.flipud(np.argsort(np.abs(c)))[:num_components]
+        A = A[importance, :].T
+        b = b[importance]
+        assert len(b) == num_components
+        assert A.shape == (dim, num_components)
+        return A, b
 
 
 class OpMLPPredict(OpPredict, Classification, Regression):
