@@ -134,8 +134,6 @@ class OpMLPTrain(OpTrain, Classification, Regression):
             channel = "valid_objective"
         else:
             channel = "valid_output_misclass"
-        if not self._terminate_early:
-            channel = None
 
         lra = sgd.MonitorBasedLRAdjuster(channel_name=channel)
         ext = [lra]
@@ -144,8 +142,12 @@ class OpMLPTrain(OpTrain, Classification, Regression):
                 channel_name=channel, store_best_model=True)
             ext.append(keep)
 
+        if self._terminate_early:
+            termination_channel = channel
+        else:
+            termination_channel = None
         criteria = get_termination_criteria(epochs=self._max_epochs,
-                                            channel=channel)
+                                            channel=termination_channel)
 
         algorithm = sgd.SGD(learning_rate=self._learning_rate,
                             batch_size=self._batch_size,
@@ -291,10 +293,8 @@ class LeastSquaresWeightInitializer(_OperatorWeightInitializer):
             return 1/(1+np.exp(-x))
 
         # determine output weights by least squares fit
-        print("computing matrix")
         M = sigmoid(np.dot(X, A.T) + b)
         
-        print("done, matrix dims are {}".format(M.shape))
         c = np.dot(np.linalg.pinv(M), y)
 
         # take hyperplanes corresponding to large weights
