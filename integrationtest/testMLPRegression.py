@@ -3,7 +3,12 @@ import warnings
 import tempfile
 import shutil
 
-from matplotlib import pyplot as plt
+try:
+    from matplotlib import pyplot as plt
+except ImportError:
+    plot_available = False
+else:
+    plot_available = True
 
 from deeplearning.workflow import Workflow
 from deeplearning.split import OpTrainTestSplit
@@ -139,6 +144,9 @@ if __name__ == "__main__":
         config["source"] = {"class": OpStreamingHdf5Reader,
                             "filename": filename,
                             "internal_path": internal}
+
+    if args.plot:
+        assert plot_available, "need matplotlib for plotting"
 
     config["train"]["max_epochs"] = args.epochs
 
