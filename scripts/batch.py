@@ -17,7 +17,6 @@ from deeplearning.features import OpMean
 from deeplearning.features import OpFairness
 from deeplearning.features import OpLinearWeightedMean
 from deeplearning.features import OpDiff
-from deeplearning.features import OpGaussianSmoothing
 
 from deeplearning.report import OpRegressionReport
 
