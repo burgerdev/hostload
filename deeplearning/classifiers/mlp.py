@@ -254,13 +254,30 @@ class PCAWeightInitializer(_OperatorWeightInitializer):
     
         A = np.dot(X_centered.T, X_centered)
         eigenvalues, eigenvectors = np.linalg.eig(A)
-        idx = np.argsort(eigenvalues)
-        idx = np.flipud(idx)
-        assert num_components <= len(idx)
-        idx = idx[:num_components]
-        eigenvectors = eigenvectors[:, idx]
-        constants = -np.dot(X_mean, eigenvectors)
-        return eigenvectors, constants
+        importance = eigenvalues
+        importance /= importance.sum()
+        choice = np.random.choice(len(importance), size=num_components,
+                                  replace=len(importance) < num_components,
+                                  p=importance)
+        eigenvectors = eigenvectors[:, choice]
+
+        add_noise = num_components > 1.5*len(importance)
+        flip_sign = True
+
+        if add_noise:
+            noise = (np.random.random(size=eigenvectors.shape) -.5)*2
+            noise /= np.sqrt(np.square(eigenvectors).sum(axis=0,
+                                                         keepdims=True))
+
+            noise *= .05
+            eigenvectors += noise
+
+        if flip_sign:
+            signs = np.random.choice([-1, 1], size=(1, eigenvectors.shape[1]))
+            eigenvectors *= signs
+
+        shifts = -np.dot(X_mean, eigenvectors)
+        return eigenvectors, shifts
 
 
 class LeastSquaresWeightInitializer(_OperatorWeightInitializer):
@@ -268,19 +285,22 @@ class LeastSquaresWeightInitializer(_OperatorWeightInitializer):
         assert self.Input.ready(), "need dataset to compute PCA"
         X = self.Input[0][...].wait()
         y = self.Input[1][...].wait().squeeze()
+        self._layer = layer
         weights, biases = self._solve(X, y, num_components=nhid)
         weights = weights.astype(np.float32)
         layer.set_weights(weights)
         biases = biases.astype(np.float32)
         layer.set_biases(biases)
+        self._layer = None
 
     def _solve(self, X, y, num_components=1):
         dim = X.shape[1]
-        #print("dim={}".format(dim))
-        assert num_components <= dim
         assert len(X) == len(y) and len(y.shape) == 1
 
         # generate random hyperplanes (A,b) that intersect [0,1]^dim at P
+
+        # the equation system has to be overdetermined, i.e. we need more rows
+        # (len(X)) than columns (num_hyperplanes)
         num_hyperplanes = min(num_components*10, len(X)/4)
         # FIXME line below is biased
         A = np.random.random(size=(num_hyperplanes, dim)) -.5
@@ -293,17 +313,34 @@ class LeastSquaresWeightInitializer(_OperatorWeightInitializer):
             return 1/(1+np.exp(-x))
 
         # determine output weights by least squares fit
-        M = sigmoid(np.dot(X, A.T) + b)
+        M = self._apply_nonlinearity(np.dot(X, A.T) + b)
         
         c = np.dot(np.linalg.pinv(M), y)
+        assert len(c) == num_hyperplanes
 
         # take hyperplanes corresponding to large weights
-        importance = np.flipud(np.argsort(np.abs(c)))[:num_components]
-        A = A[importance, :].T
-        b = b[importance]
+        importance = np.abs(c)
+        importance /= importance.sum()
+        choice = np.random.choice(num_hyperplanes, size=num_components,
+                                  p=importance)
+        A = A[choice, :].T
+        b = b[choice]
         assert len(b) == num_components
         assert A.shape == (dim, num_components)
         return A, b
+
+    def _apply_nonlinearity(self, x):
+        from pylearn2.models.mlp import Sigmoid, Linear, RectifiedLinear
+        nonlinearities = {Sigmoid: lambda x: 1/(1+np.exp(-x)),
+                          Linear: lambda x: x,
+                          RectifiedLinear: lambda x: np.max(x, 0)}
+
+        for cls in nonlinearities:
+            if isinstance(self._layer, cls):
+                return nonlinearities[cls](x)
+        msg = "can't determine nonlinearity of class {}".format(
+            type(self._layer))
+        raise NotImplementedError(msg)
 
 
 class OpMLPPredict(OpPredict, Classification, Regression):
@@ -314,7 +351,6 @@ class OpMLPPredict(OpPredict, Classification, Regression):
         b = roi.stop[0]
 
         inputs = self.Input[a:b, ...].wait()
-        # TODO check if tests work without this statement
         # inputs = inputs.astype(np.float32)
         shared = theano.shared(inputs, name='inputs')
         prediction = model.fprop(shared).eval()
