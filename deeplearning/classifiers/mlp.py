@@ -2,11 +2,12 @@
 import logging
 
 import numpy as np
+import vigra
 import theano
 
 from itertools import repeat
 
-from lazyflow.operator import Operator, InputSlot
+from lazyflow.operator import Operator, InputSlot, OutputSlot
 
 from deeplearning.data import OpDataset
 from deeplearning.tools import Buildable
@@ -358,3 +359,35 @@ class OpMLPPredict(OpPredict, Classification, Regression):
         a = roi.start[1]
         b = roi.stop[1]
         result[...] = prediction[:, a:b]
+
+
+class OpForwardLayers(Operator):
+    Input = InputSlot()
+    Output = OutputSlot()
+
+    def __init__(self, layers, *args, **kwargs):
+        super(OpForwardLayers, self).__init__(*args, **kwargs)
+        self._layers = layers
+
+    def setupOutputs(self):
+        dim_output = self._layers[-1].get_output_space().dim
+        self._dim_output = dim_output
+        num_inputs = self.Input.meta.shape[0]
+
+        self.Output.meta.assignFrom(self.Input.meta)
+        self.Output.meta.shape = (num_inputs, dim_output)
+        self.Output.meta.axistags = vigra.defaultAxistags('tc')
+
+    def propagateDirty(self, slot, subindex, roi):
+        roi = roi.copy()
+        roi.start = (roi.start[0], 0)
+        roi.stop = (roi.stop[0], self._dim_output)
+        self.Output.setDirty(roi)
+
+    def execute(self, slot, subregion, roi, result):
+        inputs = self.Input[roi.start[0]:roi.stop[0], ...].wait()
+        inputs = inputs.astype(np.float32)
+        shared = theano.shared(inputs, name='inputs')
+        for layer in self._layers:
+            shared = layer.fprop(shared)
+        result[:] = shared.eval()

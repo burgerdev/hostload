@@ -2,15 +2,16 @@
 import unittest
 
 import numpy as np
-import vigra
 
 from deeplearning.classifiers.mlp import PCAWeightInitializer
 from deeplearning.classifiers.mlp import LeastSquaresWeightInitializer
+from deeplearning.classifiers.mlp import OpForwardLayers
 
 from lazyflow.graph import Graph
 
 from pylearn2.models.mlp import MLP
 from pylearn2.models.mlp import Sigmoid
+from pylearn2.models.mlp import Linear
 
 
 class TestInitializers(unittest.TestCase):
@@ -20,8 +21,6 @@ class TestInitializers(unittest.TestCase):
         X = np.random.random(size=(n, d))
         y = np.sum(X, axis=1, keepdims=True)
 
-        # self.X = vigra.taggedView(X, axistags='tc')
-        # self.y = vigra.taggedView(y, axistags='tc')
         self.X = X
         self.y = y
         self.n = n
@@ -71,3 +70,16 @@ class TestInitializers(unittest.TestCase):
             np.testing.assert_array_equal(weights.shape, (self.d, k))
             assert np.abs(weights).sum() > 0
 
+    def testForward(self):
+        k = 2
+        layer = Linear(layer_name='y', irange=0, dim=k)
+        MLP(layers=[layer], nvis=self.d)
+        op = OpForwardLayers([layer], graph=Graph())
+
+        op.Input.setValue(self.X)
+        np.testing.assert_array_equal(op.Output.meta.shape, (self.n, k))
+        not_zero = np.ones(op.Output.meta.shape, dtype=op.Output.meta.dtype)
+        req = op.Output[...]
+        req.writeInto(not_zero)
+        req.block()
+        np.testing.assert_array_equal(not_zero, 0)
