@@ -79,7 +79,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         nvis = self.Train[0].meta.shape[1]
         layers = []
         layer_sizes = get_layer_size_iterator(self._layer_sizes)
-        for i, cls in enumerate(self._layer_classes):            
+        for i, cls in enumerate(self._layer_classes):
             name = "hidden_{:02d}".format(i)
             config = {"layer_name": name}
             if isinstance(cls, dict):
@@ -118,13 +118,19 @@ class OpMLPTrain(OpTrain, Classification, Regression):
                      for config in self._weight_initializer]
 
         last_dim = self._nn.get_input_space().dim
+        visited_layers = []
         for init, layer in zip(iter_, self._nn.layers):
             next_dim = layer.get_output_space().dim
-            if hasattr(init, "Input"):
-                init.Input.connect(self._opTrainData.Output)
+            if isinstance(init, OperatorWeightInitializer):
+                forward = OpForwardLayers(visited_layers, parent=self)
+                forward.Input.connect(self._opTrainData.Output[0])
+                init.Input.resize(2)
+                init.Input[1].connect(self._opTrainData.Output[1])
+                init.Input[0].connect(forward.Output)
 
             init.init_layer(layer, nvis=last_dim, nhid=next_dim)
             last_dim = next_dim
+            visited_layers.append(layer)
 
     def _train(self):
         logger.info("============ TRAINING SUPERVISED ============")
@@ -184,8 +190,6 @@ class OpMLPTrain(OpTrain, Classification, Regression):
                 raise IncompatibleDataset(msg)
 
 
-
-
 class WeightInitializer(Buildable):
     def __init__(self, *args, **kwargs):
         pass
@@ -229,7 +233,7 @@ class FilterWeightInitializer(WeightInitializer):
         layer.set_biases(biases)
 
 
-class _OperatorWeightInitializer(Operator, WeightInitializer):
+class OperatorWeightInitializer(Operator, WeightInitializer):
     Input = InputSlot(level=1)
 
     def setupOutputs(self):
@@ -239,7 +243,7 @@ class _OperatorWeightInitializer(Operator, WeightInitializer):
         pass
 
 
-class PCAWeightInitializer(_OperatorWeightInitializer):
+class PCAWeightInitializer(OperatorWeightInitializer):
     def init_layer(self, layer, nvis=1, nhid=1):
         assert self.Input[0].ready(), "need dataset to compute PCA"
         X = self.Input[0][...].wait()
@@ -252,7 +256,7 @@ class PCAWeightInitializer(_OperatorWeightInitializer):
     def _pca(self, X, num_components=1):
         X_mean = X.mean(axis=0)
         X_centered = X - X_mean[np.newaxis, :]
-    
+
         A = np.dot(X_centered.T, X_centered)
         eigenvalues, eigenvectors = np.linalg.eig(A)
         importance = eigenvalues
@@ -266,7 +270,7 @@ class PCAWeightInitializer(_OperatorWeightInitializer):
         flip_sign = True
 
         if add_noise:
-            noise = (np.random.random(size=eigenvectors.shape) -.5)*2
+            noise = (np.random.random(size=eigenvectors.shape) - .5) * 2
             noise /= np.sqrt(np.square(eigenvectors).sum(axis=0,
                                                          keepdims=True))
 
@@ -281,7 +285,7 @@ class PCAWeightInitializer(_OperatorWeightInitializer):
         return eigenvectors, shifts
 
 
-class LeastSquaresWeightInitializer(_OperatorWeightInitializer):
+class LeastSquaresWeightInitializer(OperatorWeightInitializer):
     def init_layer(self, layer, nvis=1, nhid=1):
         assert self.Input.ready(), "need dataset to compute PCA"
         X = self.Input[0][...].wait()
@@ -304,18 +308,14 @@ class LeastSquaresWeightInitializer(_OperatorWeightInitializer):
         # (len(X)) than columns (num_hyperplanes)
         num_hyperplanes = min(num_components*10, len(X)/4)
         # FIXME line below is biased
-        A = np.random.random(size=(num_hyperplanes, dim)) -.5
+        A = np.random.random(size=(num_hyperplanes, dim)) - .5
         A_norms = np.sqrt(np.square(A).sum(axis=1, keepdims=True))
         A /= A_norms
         P = np.random.random(size=(num_hyperplanes, dim))
         b = -(A*P).sum(axis=1)
 
-        def sigmoid(x):
-            return 1/(1+np.exp(-x))
-
         # determine output weights by least squares fit
         M = self._apply_nonlinearity(np.dot(X, A.T) + b)
-        
         c = np.dot(np.linalg.pinv(M), y)
         assert len(c) == num_hyperplanes
 
@@ -370,7 +370,10 @@ class OpForwardLayers(Operator):
         self._layers = layers
 
     def setupOutputs(self):
-        dim_output = self._layers[-1].get_output_space().dim
+        if len(self._layers) > 0:
+            dim_output = self._layers[-1].get_output_space().dim
+        else:
+            dim_output = self.Input.meta.shape[1]
         self._dim_output = dim_output
         num_inputs = self.Input.meta.shape[0]
 

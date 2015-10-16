@@ -54,6 +54,7 @@ config = {"class": Workflow,
 class TestMLPRegression(object):
     remove_tempdir = True
     # remove_tempdir = False
+
     def setUp(self):
         self.wd = tempfile.mkdtemp(prefix="MLPReg_")
 
@@ -92,8 +93,8 @@ class TestMLPRegression(object):
         c["source"] = {"class": OpMackeyGlass}
         c["train"]["layer_sizes"] = (5,)
         c["train"]["layer_classes"] = (mlp.Sigmoid,)
-        init_1 = {"class": LeastSquaresWeightInitializer}
-        init_2 = {"class": NormalWeightInitializer}
+        init_1 = {"class": PCAWeightInitializer}
+        init_2 = {"class": LeastSquaresWeightInitializer}
         c["train"]["weight_initializer"] = (init_1, init_2)
         c["train"]["learning_rate"] = .2
         c["features"] = {"class": OpRecent, "window_size": 16}
@@ -114,7 +115,6 @@ class TestMLPRegression(object):
             plt.plot(pred, 'r+')
             plt.plot(orig, 'k.')
             plt.legend(("ground truth", "prediction", "original data"))
-
 
 
 if __name__ == "__main__":
@@ -166,4 +166,3 @@ if __name__ == "__main__":
 
     if args.plot:
         plt.show()
-

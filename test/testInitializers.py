@@ -74,8 +74,8 @@ class TestInitializers(unittest.TestCase):
         k = 2
         layer = Linear(layer_name='y', irange=0, dim=k)
         MLP(layers=[layer], nvis=self.d)
-        op = OpForwardLayers([layer], graph=Graph())
 
+        op = OpForwardLayers([layer], graph=Graph())
         op.Input.setValue(self.X)
         np.testing.assert_array_equal(op.Output.meta.shape, (self.n, k))
         not_zero = np.ones(op.Output.meta.shape, dtype=op.Output.meta.dtype)
@@ -83,3 +83,9 @@ class TestInitializers(unittest.TestCase):
         req.writeInto(not_zero)
         req.block()
         np.testing.assert_array_equal(not_zero, 0)
+
+        op = OpForwardLayers([], graph=Graph())
+        op.Input.setValue(self.X)
+        np.testing.assert_array_equal(op.Output.meta.shape, self.X.shape)
+        out = op.Output[...].wait()
+        np.testing.assert_array_almost_equal(out, self.X)
