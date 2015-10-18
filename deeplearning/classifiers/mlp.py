@@ -258,8 +258,10 @@ class PCAWeightInitializer(OperatorWeightInitializer):
         X_centered = X - X_mean[np.newaxis, :]
 
         A = np.dot(X_centered.T, X_centered)
-        eigenvalues, eigenvectors = np.linalg.eig(A)
-        importance = eigenvalues
+        eigenvalues, eigenvectors = np.linalg.eigh(A)
+        # A should be positive-semidefinite, but sometimes numpy won't
+        # acknowledge that and return something like -1e-7
+        importance = np.abs(eigenvalues)
         importance /= importance.sum()
         choice = np.random.choice(len(importance), size=num_components,
                                   replace=len(importance) < num_components,

@@ -39,9 +39,11 @@ features = {"class": OpSimpleCombiner,
                           )}
 
 
-initializer_choices = [(this, {"class": NormalWeightInitializer})
-                       for this in (LeastSquaresWeightInitializer,
-                                    PCAWeightInitializer)]
+#initializer_choices = [(this, {"class": NormalWeightInitializer})
+#                       for this in (LeastSquaresWeightInitializer,
+#                                    PCAWeightInitializer)]
+initializer_choices = [{"class": PCAWeightInitializer},
+                       {"class": LeastSquaresWeightInitializer}]
 
 
 config = {"features": features,
@@ -50,10 +52,10 @@ config = {"features": features,
                      "num_segments": 1},
           "train": {"class": OpMLPTrain,
                     "layer_classes": (mlp.Sigmoid,),
-                    "layer_sizes": [8, 16, 32],
-                    "max_epochs": 5000,
+                    "layer_sizes": [128],
+                    "max_epochs": 2500,
                     "terminate_early": False,
-                    "learning_rate": 0.2,
+                    "learning_rate": [0.2, 0.5],
                     "weight_initializer": initializer_choices},
           "predict": {"class": OpMLPPredict},
           "report": {"class": OpRegressionReport},
