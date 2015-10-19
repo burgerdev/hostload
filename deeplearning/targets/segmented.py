@@ -4,6 +4,7 @@ import vigra
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
+from lazyflow.operators import OpReorderAxes
 
 from deeplearning.tools import Regression
 from deeplearning.tools import Buildable
@@ -16,6 +17,8 @@ class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
 
     Output = OutputSlot()
 
+    _Input = OutputSlot()
+
     @classmethod
     def build(cls, d, parent=None, graph=None, workingdir=None):
         op = cls(parent=parent, graph=graph)
@@ -23,9 +26,15 @@ class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
         op.NumSegments.setValue(d["num_segments"])
         return op
 
+    def __init__(self, *args, **kwargs):
+        super(OpExponentiallySegmentedPattern, self).__init__(*args, **kwargs)
+        reorder = OpReorderAxes(parent=self)
+        reorder.AxisOrder.setValue('t')
+        reorder.Input.connect(self.Input)
+        self._Input.connect(reorder.Output)
+
     def setupOutputs(self):
-        assert len(self.Input.meta.shape) == 1, "input is expected to be 1D"
-        num_examples = self.Input.meta.shape[0]
+        num_examples = self._Input.meta.shape[0]
         num_segments = self.NumSegments.value
         self.Output.meta.shape = (num_examples, num_segments)
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
@@ -45,7 +54,7 @@ class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
             to_fill = roi.stop[0]+max_segment-1 - max_t
         filler = np.zeros((to_fill,))
         new_roi = SubRegion(self.Input, start=new_start, stop=new_stop)
-        x = self.Input.get(new_roi).wait()
+        x = self._Input.get(new_roi).wait()
         x = np.concatenate((x, filler))
         n_interior = roi.stop[0] - roi.start[0]
 
