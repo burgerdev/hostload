@@ -202,9 +202,9 @@ class NormalWeightInitializer(WeightInitializer):
     @classmethod
     def get_default_config(cls):
         config = super(WeightInitializer, cls).get_default_config()
-        config["mean"] = 0
+        config["mean"] = 0.0
         config["stddev"] = .1
-        config["bias"] = .5
+        config["bias"] = 0.0
         return config
 
     def init_layer(self, layer, nvis=1, nhid=1):
@@ -259,32 +259,61 @@ class PCAWeightInitializer(OperatorWeightInitializer):
 
         A = np.dot(X_centered.T, X_centered)
         eigenvalues, eigenvectors = np.linalg.eigh(A)
+        dim = len(eigenvalues)
+
         # A should be positive-semidefinite, but sometimes numpy won't
         # acknowledge that and return something like -1e-7
         importance = np.abs(eigenvalues)
         importance /= importance.sum()
-        choice = np.random.choice(len(importance), size=num_components,
-                                  replace=len(importance) < num_components,
-                                  p=importance)
-        eigenvectors = eigenvectors[:, choice]
+        importance_order = np.flipud(np.argsort(importance))
+        eigenvectors = eigenvectors[:, importance_order]
+        eigenvalues = eigenvalues[importance_order]
+        importance = importance[importance_order]
 
-        add_noise = num_components > 1.5*len(importance)
-        flip_sign = True
+        # use different signs
+        importance_interleaved = np.zeros((2*dim,), dtype=np.float32)
+        eigenvectors_interleaved = np.zeros((eigenvectors.shape[0], 2*dim),
+                                            dtype=np.float32)
+        eigenvectors_interleaved[:, ::2] = eigenvectors
+        eigenvectors_interleaved[:, 1::2] = -eigenvectors
+        importance_interleaved[::2] = importance
+        importance_interleaved[1::2] = importance
+        importance_interleaved /= 2
 
-        if add_noise:
-            noise = (np.random.random(size=eigenvectors.shape) - .5) * 2
-            noise /= np.sqrt(np.square(eigenvectors).sum(axis=0,
+        # if we can, take all possible signs, otherwise flip sign randomly
+        if num_components <= dim:
+            flip_sign_start = 0
+        else:
+            flip_sign_start = 2*dim
+
+        weights = np.zeros((eigenvectors.shape[0], num_components),
+                           dtype=np.float32)
+
+        base = min(num_components, 2*dim)
+        weights[:, :base] = eigenvectors_interleaved[:, :base]
+
+        if num_components > 2*dim:
+            # fill weights with eigenvectors weighted by their importance
+            fill = num_components - 2*dim
+            choice = np.random.choice(len(importance_interleaved), size=fill,
+                                      replace=True, p=importance_interleaved)
+            weights[:, 2*dim:] = eigenvectors_interleaved[:, choice]
+
+            # add noise so that we don't have the same weight vector twice
+            shape = (eigenvectors.shape[0], num_components - 2*dim)
+            noise = (np.random.random(size=shape) - .5) * 2
+            noise /= np.sqrt(np.square(noise).sum(axis=0,
                                                          keepdims=True))
+            noise *= .21
+            weights[:, 2*dim:] += noise
 
-            noise *= .05
-            eigenvectors += noise
+        if flip_sign_start < num_components:
+            shape = (1, num_components - flip_sign_start)
+            signs = np.random.choice([-1, 1], size=shape)
+            weights[:, flip_sign_start:] *= signs
 
-        if flip_sign:
-            signs = np.random.choice([-1, 1], size=(1, eigenvectors.shape[1]))
-            eigenvectors *= signs
-
-        shifts = -np.dot(X_mean, eigenvectors)
-        return eigenvectors, shifts
+        shifts = -np.dot(X_mean, weights)
+        return weights, shifts
 
 
 class LeastSquaresWeightInitializer(OperatorWeightInitializer):
