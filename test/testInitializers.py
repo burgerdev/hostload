@@ -35,7 +35,7 @@ class TestInitializers(unittest.TestCase):
         def norm(x):
             return np.sqrt(np.square(x).sum())
 
-        for k in (2, 3, 5, 7):
+        for k in (2, 4, 6, 8):
             layer = Sigmoid(layer_name="a", irange=0, dim=k)
             # layer needs to be initialized by MLP first
             MLP(layers=[layer], nvis=self.d)
@@ -46,10 +46,10 @@ class TestInitializers(unittest.TestCase):
             np.testing.assert_array_equal(weights.shape, (self.d, k))
             assert np.abs(weights).sum() > 0
 
-            if k <= self.d:
+            if k <= 2*self.d:
                 for i in range(k):
                     np.testing.assert_almost_equal(norm(weights[:, i]), 1)
-                    for j in range(i+1, k):
+                    for j in range(i+2, k, 2):
                         dot = np.dot(weights[:, i], weights[:, j])
                         np.testing.assert_almost_equal(dot, 0)
 
