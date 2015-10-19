@@ -10,6 +10,7 @@ from deeplearning.features import OpRawWindowed
 from deeplearning.features import OpDiff
 from deeplearning.features import OpMean
 from deeplearning.features import OpLinearWeightedMean
+from deeplearning.features import OpExponentialFilter
 from deeplearning.features import OpFairness
 from deeplearning.features import OpRecent
 
@@ -48,6 +49,15 @@ class TestOpLinearWeightedMean(TestOpMean):
         op = OpLinearWeightedMean(graph=Graph())
         op.WindowSize.setValue(self.window_size)
         exp = np.asarray([15, 31, 28, 25, 41, 30, 23])/6.0
+        return op, exp
+
+
+class TestOpExponentialFilter(TestOpMean):
+    def getOp(self):
+        op = OpExponentialFilter(graph=Graph())
+        op.WindowSize.setValue(self.window_size)
+        exp = np.asarray([3.962407, 6.401044, 3.756507, 3.939616, 8.718104,
+                          3.439447, 3.086751])
         return op, exp
 
 

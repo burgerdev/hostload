@@ -5,6 +5,7 @@ from .window import OpGaussianSmoothing
 
 from .filter import OpMean
 from .filter import OpLinearWeightedMean
+from .filter import OpExponentialFilter
 
 from .recent import OpRecent
 
