@@ -54,8 +54,8 @@ class TestOpLinearWeightedMean(TestOpMean):
 
 class TestOpExponentialFilter(TestOpMean):
     def getOp(self):
-        op = OpExponentialFilter(graph=Graph())
-        op.WindowSize.setValue(self.window_size)
+        op = OpExponentialFilter.build({"window_size": self.window_size},
+                                       graph=Graph())
         exp = np.asarray([3.962407, 6.401044, 3.756507, 3.939616, 8.718104,
                           3.439447, 3.086751])
         return op, exp

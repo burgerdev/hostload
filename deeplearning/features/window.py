@@ -5,8 +5,10 @@ import vigra
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.rtype import SubRegion
 
+from deeplearning.tools import Buildable
 
-class OpWindow(Operator):
+
+class OpWindow(Operator, Buildable):
     Input = InputSlot()
     WindowSize = InputSlot()
 
@@ -18,6 +20,12 @@ class OpWindow(Operator):
         if "window_size" in config:
             op.WindowSize.setValue(config["window_size"])
         return op
+
+    @classmethod
+    def get_default_config(cls):
+        config = super(OpWindow, cls).get_default_config()
+        config["window_size"] = 16
+        return config
 
     def setupOutputs(self):
         assert (len(self.Input.meta.shape) <= 2 or
