@@ -455,6 +455,7 @@ class OpForwardLayers(Operator):
         self.Output.meta.assignFrom(self.Input.meta)
         self.Output.meta.shape = (num_inputs, dim_output)
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
+        self.Output.meta.dtype = np.float32
 
     def propagateDirty(self, slot, subindex, roi):
         roi = roi.copy()
@@ -465,7 +466,7 @@ class OpForwardLayers(Operator):
     def execute(self, slot, subregion, roi, result):
         inputs = self.Input[roi.start[0]:roi.stop[0], ...].wait()
         inputs = inputs.astype(np.float32)
-        shared = theano.shared(inputs, name='inputs')
+        shared = theano.shared(inputs)
         for layer in self._layers:
             shared = layer.fprop(shared)
         result[:] = shared.eval()
