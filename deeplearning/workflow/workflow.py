@@ -8,6 +8,7 @@ from deeplearning.tools.serialization import dumps
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 from deeplearning.tools import IncompatibleTargets
+from deeplearning.tools import Buildable
 from deeplearning.tools import build_operator
 
 from deeplearning.data.caches import OpPickleCache
@@ -15,10 +16,14 @@ from deeplearning.data.caches import OpHDF5Cache
 from deeplearning.split import OpTrainTestSplit
 
 
-class Workflow(object):
+class Workflow(Buildable):
+    Features = None
+    Prediction = None
+    Target = None
+
     @classmethod
     def build(cls, config, workingdir=None):
-        d = getDefaultConfig()
+        d = cls.get_default_config()
         d.update(config)
         assert "class" in d and issubclass(d["class"], Workflow)
         del d["class"]
@@ -85,6 +90,10 @@ class Workflow(object):
     def run(self):
         self._report.Output[...].block()
 
+    def set_classifier(self, classifier):
+        self._predict.Classifier.disconnect()
+        self._predict.Classifier.setValue(classifier)
+
     def _initialize(self):
         source = self._source
         features = self._features
@@ -125,6 +134,10 @@ class Workflow(object):
         report.All[1].connect(target.Output)
         report.Description.connect(split.Description)
 
+        self.Prediction = predict.Output
+        self.Features = split.All[0]
+        self.Target = target.Output
+
     def _cleanup(self):
         c = self._predictionCache
         self._report.All[0].disconnect()
@@ -155,17 +168,17 @@ class Workflow(object):
             f.write(s)
             f.write("\n")
 
-
-def getDefaultConfig():
-    config = {"class": Workflow,
-              "source": {"class": None},
-              "preprocessing": tuple(),
-              "features": {"class": None},
-              "target": {"class": None},
-              "split": {"class": OpTrainTestSplit},
-              "train": {"class": None},
-              "classifierCache": {"class": OpPickleCache},
-              "predict": {"class": None},
-              "predictionCache": {"class": OpHDF5Cache},
-              "report": {"class": None}}
-    return config
+    @classmethod
+    def getDefaultConfig(cls):
+        config = {"class": Workflow,
+                  "source": {"class": None},
+                  "preprocessing": tuple(),
+                  "features": {"class": None},
+                  "target": {"class": None},
+                  "split": {"class": OpTrainTestSplit},
+                  "train": {"class": None},
+                  "classifierCache": {"class": OpPickleCache},
+                  "predict": {"class": None},
+                  "predictionCache": {"class": OpHDF5Cache},
+                  "report": {"class": None}}
+        return config
