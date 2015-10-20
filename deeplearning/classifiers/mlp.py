@@ -247,73 +247,117 @@ class PCAWeightInitializer(OperatorWeightInitializer):
     def init_layer(self, layer, nvis=1, nhid=1):
         assert self.Input[0].ready(), "need dataset to compute PCA"
         X = self.Input[0][...].wait()
-        weights, biases = self._pca(X, num_components=nhid)
+        weights, biases = self._get_weights(X, num_components=nhid)
         weights = weights.astype(np.float32)
         layer.set_weights(weights)
         biases = biases.astype(np.float32)
         layer.set_biases(biases)
 
-    def _pca(self, X, num_components=1):
-        X_mean = X.mean(axis=0)
-        X_centered = X - X_mean[np.newaxis, :]
+    @staticmethod
+    def _pca(data):
+        """
+        apply PCA on dataset
 
-        A = np.dot(X_centered.T, X_centered)
-        eigenvalues, eigenvectors = np.linalg.eigh(A)
-        dim = len(eigenvalues)
+        output is sorted by standard deviation in descending order
+
+        @param data an array of shape num_observations x num_features
+        @return tuple(standard_deviations, eigenvectors, mean_observation)
+        """
+        num_obs = len(data)
+        assert num_obs > 1, "can't apply PCA on dataset with only one point"
+        data_mean = data.mean(axis=0)
+        data_centered = data - data_mean[np.newaxis, :]
+
+        covariance_matrix = np.dot(data_centered.T, data_centered)/(num_obs-1)
+        eigenvalues, eigenvectors = np.linalg.eigh(covariance_matrix)
 
         # A should be positive-semidefinite, but sometimes numpy won't
         # acknowledge that and return something like -1e-7
-        importance = np.abs(eigenvalues)
-        importance /= importance.sum()
-        importance_order = np.flipud(np.argsort(importance))
-        eigenvectors = eigenvectors[:, importance_order]
-        eigenvalues = eigenvalues[importance_order]
-        importance = importance[importance_order]
+        variances = np.where(eigenvalues > 0, eigenvalues, 0)
+        order = np.flipud(np.argsort(variances))
+
+        return variances[order], eigenvectors[:, order], data_mean
+
+    def _get_weights(self, data, num_components=1):
+        variances, vectors, mean = self._pca(data)
+
+        cumulated_energy = np.cumsum(variances)
+        total_energy = cumulated_energy[-1]
+
+        # We don't want to initialize for directions with very small
+        # deviations, so we restrict ourselves to some fraction p of the total
+        # energy.
+        # Note that \sigma^2_{cutoff} >= (1-p)*total_energy/(dim - cutoff + 1).
+        #FIXME feature turned off for now, usefulness is questionable
+        # fraction = 0.95
+        # cutoff = np.where(cumulated_energy >= fraction*total_energy)[0][0]
+        cutoff = len(variances) - 1
+
+        dim = cutoff + 1
+        variances = variances[:dim]
+        vectors = vectors[:, :dim]
 
         # use different signs
-        importance_interleaved = np.zeros((2*dim,), dtype=np.float32)
-        eigenvectors_interleaved = np.zeros((eigenvectors.shape[0], 2*dim),
-                                            dtype=np.float32)
-        eigenvectors_interleaved[:, ::2] = eigenvectors
-        eigenvectors_interleaved[:, 1::2] = -eigenvectors
-        importance_interleaved[::2] = importance
-        importance_interleaved[1::2] = importance
-        importance_interleaved /= 2
+        vectors_interleaved = np.zeros((vectors.shape[0], 2*dim),
+                                       dtype=np.float32)
+        vectors_interleaved[:, ::2] = vectors
+        vectors_interleaved[:, 1::2] = -vectors
 
-        # if we can, take all possible signs, otherwise flip sign randomly
-        if num_components <= dim:
-            flip_sign_start = 0
-        else:
-            flip_sign_start = 2*dim
-
-        weights = np.zeros((eigenvectors.shape[0], num_components),
+        # initialized output
+        weights = np.zeros((vectors.shape[0], num_components),
                            dtype=np.float32)
 
+        # array to remember which sigma is used for this weight
+        indices = np.zeros((num_components,), dtype=np.int)
         base = min(num_components, 2*dim)
-        weights[:, :base] = eigenvectors_interleaved[:, :base]
+        weights[:, :base] = vectors_interleaved[:, :base]
+        indices[:base:2] = np.arange(dim)[:(base//2 + (1 if base % 2 else 0))]
+        indices[1:base:2] = np.arange(dim)[:base//2]
 
         if num_components > 2*dim:
+            # normalize variances so that we can use them as probabilities
+            importance = variances / (total_energy - cumulated_energy[cutoff])
+            importance_interleaved = np.zeros((2*dim,), dtype=np.float32)
+            importance_interleaved[::2] = importance
+            importance_interleaved[1::2] = importance
+            importance_interleaved /= 2
+
             # fill weights with eigenvectors weighted by their importance
             fill = num_components - 2*dim
             choice = np.random.choice(len(importance_interleaved), size=fill,
                                       replace=True, p=importance_interleaved)
-            weights[:, 2*dim:] = eigenvectors_interleaved[:, choice]
+            weights[:, 2*dim:] = vectors_interleaved[:, choice]
+            indices[2*dim:] = indices[choice]
 
             # add noise so that we don't have the same weight vector twice
-            shape = (eigenvectors.shape[0], num_components - 2*dim)
+            shape = (vectors.shape[0], fill)
             noise = (np.random.random(size=shape) - .5) * 2
-            noise /= np.sqrt(np.square(noise).sum(axis=0,
-                                                         keepdims=True))
-            noise *= .21
+            noise /= np.sqrt(np.square(noise).sum(axis=0, keepdims=True))
+            # noise is a random vector with 20% energy
+            noise *= .2
             weights[:, 2*dim:] += noise
+
+        # if we can, take all possible signs, otherwise flip sign randomly
+        if num_components < dim:
+            flip_sign_start = 0
+        else:
+            flip_sign_start = 2*dim
 
         if flip_sign_start < num_components:
             shape = (1, num_components - flip_sign_start)
             signs = np.random.choice([-1, 1], size=shape)
             weights[:, flip_sign_start:] *= signs
 
-        shifts = -np.dot(X_mean, weights)
-        return weights, shifts
+        biases = -np.dot(mean, weights)
+
+        # adjust weights and biases such that a vector of length 2*sigma scores
+        # within [-2, 2]
+        #FIXME this is only good for Sigmoid layers
+        sigmas = np.sqrt(variances[indices])
+        adjustment = sigmas
+        weights /= adjustment[np.newaxis, :]
+        biases /= adjustment
+        return weights, biases
 
 
 class LeastSquaresWeightInitializer(OperatorWeightInitializer):
