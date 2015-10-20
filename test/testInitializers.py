@@ -47,7 +47,7 @@ class TestInitializers(unittest.TestCase):
                 for i in range(k):
                     for j in range(i+2, k, 2):
                         dot = np.dot(weights[:, i], weights[:, j])
-                        np.testing.assert_almost_equal(dot, 0)
+                        np.testing.assert_almost_equal(dot, decimal=4)
 
     def testLSF(self):
         init = LeastSquaresWeightInitializer.build({}, graph=Graph())

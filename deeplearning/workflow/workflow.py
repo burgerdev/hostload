@@ -27,9 +27,6 @@ class Workflow(Buildable):
         d.update(config)
         assert "class" in d and issubclass(d["class"], Workflow)
         del d["class"]
-        import pprint
-        pprint.pprint(d)
-        pprint.pprint(config)
 
         if workingdir is None:
             if "workingdir" in d:
