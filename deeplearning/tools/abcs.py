@@ -33,7 +33,7 @@ class Buildable(object):
         """
         override to provide your own default configuration
         """
-        return {"class": cls.__name__}
+        return {"class": cls}
 
     def _set_attributes(self, config):
         """

@@ -27,6 +27,9 @@ class Workflow(Buildable):
         d.update(config)
         assert "class" in d and issubclass(d["class"], Workflow)
         del d["class"]
+        import pprint
+        pprint.pprint(d)
+        pprint.pprint(config)
 
         if workingdir is None:
             if "workingdir" in d:
@@ -169,7 +172,7 @@ class Workflow(Buildable):
             f.write("\n")
 
     @classmethod
-    def getDefaultConfig(cls):
+    def get_default_config(cls):
         config = {"class": Workflow,
                   "source": {"class": None},
                   "preprocessing": tuple(),
