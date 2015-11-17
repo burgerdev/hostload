@@ -130,6 +130,12 @@ class OpRandomUnitSquare(_BaseDataset):
         return data
 
 
+class OpXORTarget(OpRegTarget):
+    def execute(self, slot, subindex, roi, result):
+        data = self.Input[roi.start[0]:roi.stop[0], :].wait()
+        result[:, 0] = 1 - np.square(1 - data.sum(axis=1))
+
+
 class OpNormTarget(OpRegTarget):
     def execute(self, slot, subindex, roi, result):
         data = self.Input[roi.start[0]:roi.stop[0]].wait()

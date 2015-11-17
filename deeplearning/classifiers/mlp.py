@@ -45,6 +45,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         config["init_momentum"] = .5
         config["batch_size"] = 100
         config["monitor_batch_size"] = 1000
+        config["extensions"] = tuple()
         return config
 
     def __init__(self, *args, **kwargs):
@@ -148,6 +149,11 @@ class OpMLPTrain(OpTrain, Classification, Regression):
             keep = best_params.MonitorBasedSaveBest(
                 channel_name=channel, store_best_model=True)
             ext.append(keep)
+
+        for other in self._extensions:
+            ext.append(build_operator(other))
+
+        self.extensions_used = ext
 
         if self._terminate_early:
             termination_channel = channel
