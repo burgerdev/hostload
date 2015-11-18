@@ -8,33 +8,28 @@ from pylearn2.models import mlp
 from deeplearning.data.integrationdatasets import OpXORTarget
 from deeplearning.data.integrationdatasets import OpRandomUnitSquare
 from deeplearning.data.wrappers import OpArrayPiper
-from deeplearning.data import OpPickleCache
-from deeplearning.data import OpHDF5Cache
 
 from deeplearning.tools.extensions import WeightKeeper
+from deeplearning.tools.extensions import ProgressMonitor
 
-from deeplearning.workflow import Workflow
+from deeplearning.workflow import RegressionWorkflow
 from deeplearning.split import OpTrainTestSplit
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
 from deeplearning.classifiers.mlp import LeastSquaresWeightInitializer
 from deeplearning.classifiers.mlp import NormalWeightInitializer
-from deeplearning.classifiers.mlp import IdentityWeightInitializer
 from deeplearning.classifiers.mlp import PCAWeightInitializer
-from deeplearning.report import OpRegressionReport
 
 
 num_epochs = 10
 num_plots = 6
 
 
-config = {"class": Workflow,
-          "source": {"class": OpRandomUnitSquare,
+config = {"source": {"class": OpRandomUnitSquare,
                      "shape": (10000, 2)},
           "features": {"class": OpArrayPiper},
           "target": {"class": OpXORTarget,},
           "split": {"class": OpTrainTestSplit},
-          "classifierCache": {"class": OpPickleCache},
           "train": {"class": OpMLPTrain,
                     "max_epochs": num_epochs,
                     #"weight_initializer": ({"class": NormalWeightInitializer},
@@ -43,11 +38,7 @@ config = {"class": Workflow,
                     "learning_rate": .2,
                     "layer_sizes": (2,),
                     "layer_classes": (mlp.Sigmoid,)},
-          "predict": {"class": OpMLPPredict},
-          "predictionCache": {"class": OpHDF5Cache},
-          "report": {"class": OpRegressionReport,
-                     "levels": 50}}
-
+          "predict": {"class": OpMLPPredict}}
 
 def hyperplane(X, Y, w):
     a = w[0]
@@ -65,10 +56,11 @@ def main():
     data = data.astype(np.float32)
     target = 1 - np.square(1 - data.sum(axis=1))
 
-    ext = {"class": WeightKeeper}
-    config["train"]["extensions"] = (ext,)
+    ext1 = {"class": WeightKeeper}
+    ext2 = {"class": ProgressMonitor}
+    config["train"]["extensions"] = (ext1, ext2)
     wd = tempfile.mkdtemp(prefix="xor_")
-    w = Workflow.build(config, workingdir=wd)
+    w = RegressionWorkflow.build(config, workingdir=wd)
     w.run()
 
     wk = filter(lambda obj: isinstance(obj, WeightKeeper),

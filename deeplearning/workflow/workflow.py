@@ -15,6 +15,8 @@ from deeplearning.data.caches import OpPickleCache
 from deeplearning.data.caches import OpHDF5Cache
 from deeplearning.split import OpTrainTestSplit
 
+from deeplearning.report import OpRegressionReport
+
 
 class Workflow(Buildable):
     Features = None
@@ -181,4 +183,16 @@ class Workflow(Buildable):
                   "predict": {"class": None},
                   "predictionCache": {"class": OpHDF5Cache},
                   "report": {"class": None}}
+        return config
+
+
+class RegressionWorkflow(Workflow):
+    """
+    workflow specialization for regression, provides default config entries
+    """
+    @classmethod
+    def get_default_config(cls):
+        config = super(RegressionWorkflow, cls).get_default_config()
+        config["class"] = RegressionWorkflow
+        config["report"] = {"class": OpRegressionReport, "levels": 50}
         return config

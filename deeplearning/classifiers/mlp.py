@@ -15,6 +15,7 @@ from deeplearning.tools import build_operator
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 from deeplearning.tools import IncompatibleDataset
+from deeplearning.tools.extensions import PersistentTrainExtension
 
 from .abcs import OpTrain
 from .abcs import OpPredict
@@ -47,6 +48,13 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         config["monitor_batch_size"] = 1000
         config["extensions"] = tuple()
         return config
+
+    @classmethod
+    def build(cls, config, parent=None, graph=None, workingdir=None):
+        obj = super(OpMLPTrain, cls).build(config, parent=parent, graph=graph,
+                                           workingdir=workingdir)
+        obj._workingdir = workingdir
+        return obj
 
     def __init__(self, *args, **kwargs):
         super(OpMLPTrain, self).__init__(*args, **kwargs)
@@ -151,7 +159,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
             ext.append(keep)
 
         for other in self._extensions:
-            ext.append(build_operator(other))
+            ext.append(build_operator(other, workingdir=self._workingdir))
 
         self.extensions_used = ext
 
@@ -183,6 +191,10 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         self._nn.set_param_values(params)
         best_cost = keep.best_cost
         logger.info("Restoring model with cost {}".format(best_cost))
+
+        for ext in self.extensions_used:
+            if isinstance(ext, PersistentTrainExtension):
+                ext.store()
 
     def _sanity_checks(self):
         for slot in (self.Train, self.Valid):
