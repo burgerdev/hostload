@@ -17,17 +17,20 @@ from deeplearning.features import OpMean
 from deeplearning.features import OpFairness
 from deeplearning.features import OpLinearWeightedMean
 from deeplearning.features import OpDiff
+from deeplearning.features import OpExponentialFilter
 
 from deeplearning.report import OpRegressionReport
 
 from deeplearning.targets import OpExponentiallySegmentedPattern
 
 from deeplearning.tools.generic import OpChangeDtype
+from deeplearning.tools.extensions import WeightKeeper
+from deeplearning.tools.extensions import ProgressMonitor
 
 from pylearn2.models import mlp
 
 
-window_size = 64
+window_size = 32
 
 features = {"class": OpSimpleCombiner,
             "operators": ({"class": OpRecent, "window_size": window_size},
@@ -42,8 +45,8 @@ features = {"class": OpSimpleCombiner,
 #initializer_choices = [(this, {"class": NormalWeightInitializer})
 #                       for this in (LeastSquaresWeightInitializer,
 #                                    PCAWeightInitializer)]
-initializer_choices = [{"class": PCAWeightInitializer},
-                       {"class": LeastSquaresWeightInitializer}]
+initializer_choices = ({"class": PCAWeightInitializer},
+                       {"class": LeastSquaresWeightInitializer})
 
 
 config = {"features": features,
@@ -52,14 +55,18 @@ config = {"features": features,
                      "num_segments": 1},
           "train": {"class": OpMLPTrain,
                     "layer_classes": (mlp.Sigmoid,),
-                    "layer_sizes": [128],
+                    "layer_sizes": [128, 256, 512, 1024],
                     "max_epochs": 2500,
                     "terminate_early": False,
                     "learning_rate": [0.2, 0.5],
-                    "weight_initializer": initializer_choices},
+                    "weight_initializer": initializer_choices,
+                    "extensions": ({"class": WeightKeeper},
+                                   {"class": ProgressMonitor})},
           "predict": {"class": OpMLPPredict},
           "report": {"class": OpRegressionReport},
-          "preprocessing": (OpChangeDtype,)}
+          "preprocessing": (OpChangeDtype,
+                            {"class": OpExponentialFilter,
+                             "window_size": 32})}
 
 
 def main(workingdir):
