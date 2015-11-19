@@ -100,13 +100,13 @@ def _decode_dict(dict_from):
     return dict_to
 
 
-def dumps(obj):
+def dumps(obj, **kwargs):
     obj = _encode(obj)
-    return json.dumps(obj)
+    return json.dumps(obj, **kwargs)
 
 
-def loads(string):
-    dict_from = json.loads(string)
+def loads(string, **kwargs):
+    dict_from = json.loads(string, **kwargs)
     return _decode(dict_from)
 
 
