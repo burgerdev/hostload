@@ -440,6 +440,8 @@ class LeastSquaresWeightInitializer(OperatorWeightInitializer):
 class OpMLPPredict(OpPredict, Classification, Regression):
     def execute(self, slot, subregion, roi, result):
         model = self.Classifier.value
+        if isinstance(model, np.ndarray):
+            model = model[0]
 
         a = roi.start[0]
         b = roi.stop[0]

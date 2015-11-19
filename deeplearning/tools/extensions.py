@@ -62,7 +62,6 @@ class ProgressMonitor(PersistentTrainExtension):
         channel = algorithm.monitor.channels["valid_objective"]
         prog = channel.val_shared.get_value()
         self._progress.append(prog)
-        print(self._progress)
 
     def setup(self, model, dataset, algorithm):
         """
