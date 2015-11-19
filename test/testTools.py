@@ -93,7 +93,8 @@ class TestTools(unittest.TestCase):
         d = {"class": Operator,
              "cache": {"class": OpPickleCache},
              "answer": 42,
-             "a_list": [OpPickleCache, {"class": OpPickleCache}],
+             "a_list": [OpPickleCache, {"class": OpPickleCache,
+                                        "tuple_in_dict": (1, 2, 3)}],
              "a_tuple": (OpPickleCache, {"class": OpPickleCache}),
              "nested": (1, [2, (3, 4, 5)]),
              "subdict": {"a": 1}}
@@ -102,7 +103,7 @@ class TestTools(unittest.TestCase):
         pprint(d)
         print("serialized to: \n{}".format(s))
         d2 = loads(s)
-        pprint("")
+        print("")
         pprint(d2)
         assert d == d2
 

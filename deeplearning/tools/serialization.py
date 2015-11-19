@@ -3,72 +3,111 @@ import json
 import re
 from importlib import import_module
 
-from functools import partial
+
+_class_re = re.compile("^<class '(.*)'>$")
 
 
-class _CustomEncoder(json.JSONEncoder):
-    @classmethod
-    def _handle_list_like(cls, value):
-        if isinstance(value, tuple):
-            value = tuple(map(cls._handle_list_like, value)) + ("t",)
-        elif isinstance(value, list):
-            value = map(cls._handle_list_like, value) + ["l"]
+def _encode(obj):
+    if isinstance(obj, list) or isinstance(obj, tuple):
+        return _encode_listlike(obj)
+    elif isinstance(obj, dict):
+        return _encode_dict(obj)
+    elif isinstance(obj, str) or isinstance(obj, unicode):
+        return _encode_string(obj)
+    elif isinstance(obj, type):
+        return str(obj)
+    else:
+        return obj
+
+
+def _encode_string(string):
+    match = _class_re.match(string)
+    if match is None:
+        return string
+    else:
+        class_string = match.group(1)
+        itemized = class_string.split(".")
+        class_name = itemized[-1]
+        module = import_module(".".join(itemized[:-1]))
+        return getattr(module, class_name)
+
+
+def _encode_listlike(value):
+    if isinstance(value, tuple):
+        value = tuple(map(_encode, value)) + ("t",)
+    elif isinstance(value, list):
+        value = map(_encode, value) + ["l"]
+    return value
+
+
+def _encode_dict(dict_from):
+    dict_to = dict()
+
+    for key in dict_from:
+        value = dict_from[key]
+        value = _encode(value)
+        dict_to[key] = value
+    return dict_to
+
+
+def _decode(obj):
+    if isinstance(obj, list) or isinstance(obj, tuple):
+        return _decode_listlike(obj)
+    elif isinstance(obj, dict):
+        return _decode_dict(obj)
+    elif isinstance(obj, str) or isinstance(obj, unicode):
+        return _decode_string(obj)
+    else:
+        return obj
+
+
+def _decode_string(string):
+    match = _class_re.match(string)
+    if match is None:
+        return string
+    else:
+        class_string = match.group(1)
+        itemized = class_string.split(".")
+        class_name = itemized[-1]
+        module = import_module(".".join(itemized[:-1]))
+        return getattr(module, class_name)
+
+
+def _decode_listlike(value):
+        value = map(_decode, value)
+
+        if len(value) == 0:
+            pass
+        elif not (isinstance(value[-1], str) or
+                  isinstance(value[-1], unicode)):
+            pass
+        elif value[-1] not in "tl":
+            pass
+        elif value[-1] == "t":
+            value = tuple(value[:-1])
+        elif value[-1] == "l":
+            value = value[:-1]
         return value
 
-    def encode(self, obj):
-        assert isinstance(obj, dict)
-        obj = obj.copy()
-        for key in obj:
-            obj[key] = self._handle_list_like(obj[key])
-        return super(_CustomEncoder, self).encode(obj)
 
-    def default(self, obj):
-        if isinstance(obj, type):
-            return str(obj)
-        return super(_CustomEncoder, self).default(obj)
+def _decode_dict(dict_from):
+    dict_to = dict()
+
+    for key in dict_from:
+        value = dict_from[key]
+        value = _decode(value)
+        dict_to[key] = value
+    return dict_to
 
 
-class _CustomDecoder(object):
-    _class_re = re.compile("^<class '(.*)'>$")
+def dumps(obj):
+    obj = _encode(obj)
+    return json.dumps(obj)
 
-    @classmethod
-    def _handle_list_like(cls, value):
-        if isinstance(value, list):
-            value = map(cls._handle_list_like, value)
-            if len(value) == 0 or value[-1] not in "tl":
-                pass
-            elif value[-1] == "t":
-                value = tuple(value[:-1])
-            elif value[-1] == "l":
-                value = value[:-1]
-        else:
-            value = cls.decode_class(value)
-        return value
 
-    @classmethod
-    def decode_class(cls, string):
-        if not (isinstance(string, str) or isinstance(string, unicode)):
-            return string
+def loads(string):
+    dict_from = json.loads(string)
+    return _decode(dict_from)
 
-        match = cls._class_re.match(string)
-        if match is None:
-            return string
-        else:
-            class_string = match.group(1)
-            itemized = class_string.split(".")
-            class_name = itemized[-1]
-            module = import_module(".".join(itemized[:-1]))
-            return getattr(module, class_name)
 
-    @classmethod
-    def decoding_hook(cls, dict_):
-        for key in dict_:
-            dict_[key] = cls._handle_list_like(dict_[key])
-
-        if "class" in dict_:
-            dict_["class"] = cls.decode_class(dict_["class"])
-
-        return dict_
-
-dumps = partial(json.dumps, cls=_CustomEncoder)
-loads = partial(json.loads, object_hook=_CustomDecoder.decoding_hook)
+#loads = partial(json.loads, object_hook=_CustomDecoder.decoding_hook)
