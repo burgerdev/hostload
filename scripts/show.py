@@ -7,21 +7,20 @@ Created on Mon Oct 19 14:19:53 2015
 
 import os
 import cPickle as pkl
+import warnings
 
 import numpy as np
 
 from deeplearning.tools.serialization import loads
 from deeplearning.workflow import Workflow
 
-
-def main(dir_):
+try:    
     from matplotlib import pyplot as plt
-    config_file = os.path.join(dir_, "config.json")
-    with open(config_file, 'r') as f:
-        config = loads(f.read())
+except ImportError:
+    warnings.warn("can't plot without matplotlib")
 
-    workflow = Workflow.build(config)
 
+def plot_regression(workflow, dir_):
     classifier_file = os.path.join(dir_,
                                    "classifierCache", "OpPickleCache.pkl")
     with open(classifier_file, 'r') as f:
@@ -35,8 +34,43 @@ def main(dir_):
     target = workflow.Target[:].wait().squeeze()
     prediction = workflow.Prediction[:].wait().squeeze()
 
+    plt.figure()
     plt.plot(target, label="ground truth")
     plt.plot(prediction, label="prediction")
+    plt.xlabel("time")
+    plt.ylabel("target")
+    plt.legend()
+
+
+def plot_convergence(dir_):
+    progress_file = os.path.join(dir_, "train", "progressmonitor.pkl")
+    if not os.path.exists(progress_file):
+        warnings.warn("no progress file found")
+        return
+
+    with open(progress_file, "r") as f:
+        progress = np.asarray(pkl.load(f))
+
+    plt.figure()
+    plt.semilogy(progress, label="objective (validation dataset)")
+    plt.xlabel("epochs")
+    plt.ylabel("objective")
+    plt.legend()
+
+
+def main(dir_, show_regression=True, show_convergence=True):
+    config_file = os.path.join(dir_, "config.json")
+    with open(config_file, 'r') as f:
+        config = loads(f.read())
+
+    workflow = Workflow.build(config)
+
+    if show_regression:
+        plot_regression(workflow, dir_)
+
+    if show_convergence:
+        plot_convergence(dir_)
+
     plt.show()
 
 if __name__ == "__main__":
@@ -45,7 +79,14 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("experiment_dir",
                         help="directory containing the experiment")
+    parser.add_argument("-r", "--no_regression", action="store_true",
+                        default=False,
+                        help="don't show regression results")
+    parser.add_argument("-p", "--no_progress", action="store_true",
+                        default=False,
+                        help="don't show progress report")
 
     args = parser.parse_args()
 
-    main(args.experiment_dir)
+    main(args.experiment_dir, show_regression=not args.no_regression,
+         show_convergence=not args.no_progress)
