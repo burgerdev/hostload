@@ -8,8 +8,11 @@ from lazyflow.graph import Graph
 from lazyflow.operators import OpArrayPiper
 
 from deeplearning.features import OpSimpleCombiner
+from deeplearning.features import OpChain
 from deeplearning.features import OpFairness
 from deeplearning.features import OpMean
+
+from deeplearning.tools.generic import OpChangeDtype
 
 
 class TestCombiners(unittest.TestCase):
@@ -24,7 +27,7 @@ class TestCombiners(unittest.TestCase):
         op2_config = {"class": OpFairness, "window_size": 5}
 
         op1 = OpMean.build(op1_config, graph=Graph())
-        op2 = OpFairness.build(op2_config, graph=Graph()) 
+        op2 = OpFairness.build(op2_config, graph=Graph())
 
         config = {"class": OpSimpleCombiner,
                   "operators": (OpArrayPiper, op1_config, op2_config)}
@@ -48,3 +51,25 @@ class TestCombiners(unittest.TestCase):
         fair = comb.Output[:, 2].wait()
         fair_gt = op2.Output[...].wait()
         np.testing.assert_array_equal(fair, fair_gt)
+
+    def testOpChain(self):
+        n = 15
+        op1_config = OpChangeDtype
+        op2_config = {"class": OpMean, "window_size": 2}
+
+        chain = OpChain.build({"class": OpChain,
+                               "operators": (op1_config, op2_config)},
+                              graph=Graph())
+
+        array = np.arange(n, dtype=np.int)
+        array = vigra.taggedView(array, axistags='t')
+
+        chain.Input.setValue(array)
+        out = chain.Output[...].wait()
+
+        assert out.dtype == np.float32
+
+        expected = np.concatenate(((0,), np.arange(n-1)+0.5))
+        expected = expected.astype(np.float32)
+        expected = expected[:, np.newaxis]
+        np.testing.assert_array_equal(out, expected)

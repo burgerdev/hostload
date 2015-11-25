@@ -13,6 +13,7 @@ from deeplearning.data import OpStreamingHdf5Reader
 
 from deeplearning.features import OpRecent
 from deeplearning.features import OpSimpleCombiner
+from deeplearning.features import OpChain
 from deeplearning.features import OpMean
 from deeplearning.features import OpFairness
 from deeplearning.features import OpLinearWeightedMean
@@ -32,7 +33,10 @@ from pylearn2.models import mlp
 
 window_size = 32
 
-features = {"class": OpSimpleCombiner,
+feature0 = {"class": OpExponentialFilter,
+            "window_size": 32}
+
+feature1 = {"class": OpSimpleCombiner,
             "operators": ({"class": OpRecent, "window_size": window_size},
 #                          {"class": OpMean, "window_size": window_size},
 #                          {"class": OpLinearWeightedMean,
@@ -41,6 +45,7 @@ features = {"class": OpSimpleCombiner,
 #                          {"class": OpDiff})
                           )}
 
+features = {"class": OpChain, "operators": (feature0, feature1)}
 
 #initializer_choices = [(this, {"class": NormalWeightInitializer})
 #                       for this in (LeastSquaresWeightInitializer,
@@ -51,22 +56,20 @@ initializer_choices = ({"class": PCAWeightInitializer},
 
 config = {"features": features,
           "target": {"class": OpExponentiallySegmentedPattern,
-                     "baseline_size": [8, 16, 32, 64],
+                     "baseline_size": 8,
                      "num_segments": 1},
           "train": {"class": OpMLPTrain,
-                    "layer_classes": (mlp.Sigmoid,),
-                    "layer_sizes": [128, 256, 512, 1024],
-                    "max_epochs": 2500,
+                    "layer_classes": (mlp.Sigmoid, mlp.Sigmoid,),
+                    "layer_sizes": (24, 16),
+                    "max_epochs": 10000,
                     "terminate_early": False,
-                    "learning_rate": [0.2, 0.5],
+                    "learning_rate": [0.1, 0.2, 0.5],
                     "weight_initializer": initializer_choices,
                     "extensions": ({"class": WeightKeeper},
                                    {"class": ProgressMonitor})},
           "predict": {"class": OpMLPPredict},
           "report": {"class": OpRegressionReport},
-          "preprocessing": (OpChangeDtype,
-                            {"class": OpExponentialFilter,
-                             "window_size": 32})}
+          "preprocessing": (OpChangeDtype,)}
 
 
 def main(workingdir):

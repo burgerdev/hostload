@@ -73,4 +73,5 @@ class OpChangeDtype(OpArrayPiper, Buildable):
         if self.Input.meta.dtype == out_type:
             super(OpChangeDtype, self).execute(slot, subindex, roi, result)
         else:
-            result[:] = self.Input.get(roi).wait().astype(out_type)
+            input_ = self.Input.get(roi).wait()
+            result[:] = input_.astype(out_type)

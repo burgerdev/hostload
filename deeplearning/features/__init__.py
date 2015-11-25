@@ -10,3 +10,4 @@ from .filter import OpExponentialFilter
 from .recent import OpRecent
 
 from .combiners import OpSimpleCombiner
+from .combiners import OpChain
