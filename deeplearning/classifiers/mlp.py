@@ -226,7 +226,7 @@ class WeightInitializer(Buildable):
 class NormalWeightInitializer(WeightInitializer):
     @classmethod
     def get_default_config(cls):
-        config = super(WeightInitializer, cls).get_default_config()
+        config = super(NormalWeightInitializer, cls).get_default_config()
         config["mean"] = 0.0
         config["stddev"] = .1
         config["bias"] = 0.0
@@ -242,11 +242,6 @@ class NormalWeightInitializer(WeightInitializer):
 
 
 class FilterWeightInitializer(WeightInitializer):
-    @classmethod
-    def get_default_config(cls):
-        config = super(WeightInitializer, cls).get_default_config()
-        return config
-
     def init_layer(self, layer, nvis=1, nhid=1):
         weights = np.ones((nvis, nhid))
         weights /= nvis
