@@ -11,6 +11,7 @@ from lazyflow.operator import Operator, InputSlot, OutputSlot
 
 from deeplearning.data import OpDataset
 from deeplearning.tools import Buildable
+from deeplearning.tools import get_rng
 from deeplearning.tools import build_operator
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
@@ -215,6 +216,12 @@ class WeightInitializer(Buildable):
     def init_layer(self, layer, nvis=1, nhid=1):
         raise NotImplementedError()
 
+    @classmethod
+    def get_default_config(cls):
+        config = super(WeightInitializer, cls).get_default_config()
+        config["rng"] = get_rng()
+        return config
+
 
 class NormalWeightInitializer(WeightInitializer):
     @classmethod
@@ -226,7 +233,7 @@ class NormalWeightInitializer(WeightInitializer):
         return config
 
     def init_layer(self, layer, nvis=1, nhid=1):
-        weights = np.random.normal(self._mean, self._stddev, size=(nvis, nhid))
+        weights = self._rng.normal(self._mean, self._stddev, size=(nvis, nhid))
         weights = weights.astype(np.float32)
         layer.set_weights(weights)
         biases = np.zeros((nhid,), dtype=np.float32)
@@ -243,11 +250,11 @@ class FilterWeightInitializer(WeightInitializer):
     def init_layer(self, layer, nvis=1, nhid=1):
         weights = np.ones((nvis, nhid))
         weights /= nvis
-        signs = np.random.randint(0, 3, size=weights.shape)
+        signs = self._rng.randint(0, 3, size=weights.shape)
         weights *= (signs-1)
         weights = weights.astype(np.float32)
         layer.set_weights(weights)
-        biases = np.random.random(size=(nhid,)).astype(np.float32)
+        biases = self._rng.rand(nhid).astype(np.float32)
         layer.set_biases(biases)
 
 
@@ -342,14 +349,14 @@ class PCAWeightInitializer(OperatorWeightInitializer):
 
             # fill weights with eigenvectors weighted by their importance
             fill = num_components - 2*dim
-            choice = np.random.choice(len(importance_interleaved), size=fill,
+            choice = self._rng.choice(len(importance_interleaved), size=fill,
                                       replace=True, p=importance_interleaved)
             weights[:, 2*dim:] = vectors_interleaved[:, choice]
             indices[2*dim:] = indices[choice]
 
             # add noise so that we don't have the same weight vector twice
             shape = (vectors.shape[0], fill)
-            noise = (np.random.random(size=shape) - .5) * 2
+            noise = (self._rng.rand(*shape) - .5) * 2
             noise /= np.sqrt(np.square(noise).sum(axis=0, keepdims=True))
             # noise is a random vector with 20% energy
             noise *= .2
@@ -363,7 +370,7 @@ class PCAWeightInitializer(OperatorWeightInitializer):
 
         if flip_sign_start < num_components:
             shape = (1, num_components - flip_sign_start)
-            signs = np.random.choice([-1, 1], size=shape)
+            signs = self._rng.choice([-1, 1], size=shape)
             weights[:, flip_sign_start:] *= signs
 
         biases = -np.dot(mean, weights)
@@ -401,10 +408,10 @@ class LeastSquaresWeightInitializer(OperatorWeightInitializer):
         # (len(X)) than columns (num_hyperplanes)
         num_hyperplanes = min(num_components*10, len(X)/4)
         # FIXME line below is biased
-        A = np.random.random(size=(num_hyperplanes, dim)) - .5
+        A = self._rng.rand(num_hyperplanes, dim) - .5
         A_norms = np.sqrt(np.square(A).sum(axis=1, keepdims=True))
         A /= A_norms
-        P = np.random.random(size=(num_hyperplanes, dim))
+        P = self._rng.rand(num_hyperplanes, dim)
         b = -(A*P).sum(axis=1)
 
         # determine output weights by least squares fit
@@ -415,7 +422,7 @@ class LeastSquaresWeightInitializer(OperatorWeightInitializer):
         # take hyperplanes corresponding to large weights
         importance = np.abs(c)
         importance /= importance.sum()
-        choice = np.random.choice(num_hyperplanes, size=num_components,
+        choice = self._rng.choice(num_hyperplanes, size=num_components,
                                   p=importance)
         A = A[choice, :].T
         b = b[choice]

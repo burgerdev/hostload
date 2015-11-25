@@ -2,6 +2,8 @@
 from itertools import product
 from itertools import chain
 
+import numpy as np
+
 
 def expandDict(d, listify=True):
     if listify:
@@ -35,3 +37,7 @@ def listifyDict(d):
     keys = d.keys()
     values = map(apply, keys)
     return dict(zip(keys, values))
+
+
+def get_rng():
+    return np.random.RandomState(420)
