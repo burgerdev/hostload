@@ -108,11 +108,17 @@ class OpTrainTestSplit(Operator, Buildable):
         # FIXME
         pass
 
-    @staticmethod
-    def build(d, parent=None, graph=None, workingdir=None):
-        op = OpTrainTestSplit(parent=parent, graph=graph)
-        if "test" in d:
-            op.TestPercentage.setValue(d["test"])
-        if "valid" in d:
-            op.ValidPercentage.setValue(d["valid"])
+    @classmethod
+    def build(cls, config, parent=None, graph=None, workingdir=None):
+        op = super(OpTrainTestSplit, cls).build(config,
+                                                parent=parent, graph=graph)
+        op.TestPercentage.setValue(op._test)
+        op.ValidPercentage.setValue(op._valid)
         return op
+
+    @classmethod
+    def get_default_config(cls):
+        config = super(OpTrainTestSplit, cls).get_default_config()
+        config["test"] = 0.1
+        config["valid"] = 0.1
+        return config
