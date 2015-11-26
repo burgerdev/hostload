@@ -2,13 +2,15 @@
 import os
 import cPickle as pkl
 
+from itertools import imap
+
 from pylearn2.train_extensions import TrainExtension
 from deeplearning.tools import Buildable
 
 
 class BuildableTrainExtension(TrainExtension, Buildable):
     @classmethod
-    def build(cls, config, workingdir=None):
+    def build(cls, config, parent=None, graph=None, workingdir=None):
         return cls(workingdir)
 
     def __init__(self, workingdir):
@@ -76,3 +78,41 @@ class ProgressMonitor(PersistentTrainExtension):
         path = os.path.join(self._wd, "progressmonitor.pkl")
         with open(path, "w") as f:
             pkl.dump(self._progress, f)
+
+try:
+    from pympler import summary
+    from pympler import muppy
+    from pympler import tracker
+except ImportError:
+    pass
+else:
+    class MemoryDebugger(PersistentTrainExtension):
+        """
+        uses the pympler module for debugging memory leaks
+        """
+
+        def on_monitor(self, model, dataset, algorithm):
+            """
+            add a new report about leaked objects
+            """
+            current_summary = summary.summarize(muppy.get_objects())
+            self._diffs.append(self._tr.format_diff(self._last_summary,
+                                                    current_summary))
+
+            self._last_summary = current_summary
+
+        def setup(self, model, dataset, algorithm):
+            """
+            initialize the weight list
+            """
+            self._diffs = []
+            self._tr = tracker.SummaryTracker()
+            self._last_summary = summary.summarize(muppy.get_objects())
+
+        def store(self):
+            path = os.path.join(self._wd, "memleaks.log")
+            with open(path, "w") as f:
+                for gen in self._diffs:
+                    lines = imap("{}\n".format, gen)
+                    f.writelines(lines)
+                f.write("=============== EPOCH ===============\n")
