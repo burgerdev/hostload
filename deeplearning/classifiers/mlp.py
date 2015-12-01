@@ -1,5 +1,7 @@
 
 import logging
+import os
+import cPickle as pkl
 
 import numpy as np
 import vigra
@@ -17,6 +19,7 @@ from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 from deeplearning.tools import IncompatibleDataset
 from deeplearning.tools.extensions import PersistentTrainExtension
+from deeplearning.tools.extensions import MonitorBasedSaveBest
 
 from .abcs import OpTrain
 from .abcs import OpPredict
@@ -29,7 +32,6 @@ from pylearn2.models import mlp
 from pylearn2.training_algorithms import sgd
 from pylearn2.training_algorithms import learning_rule
 from pylearn2 import train
-from pylearn2.train_extensions import best_params
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         config["batch_size"] = 100
         config["monitor_batch_size"] = 1000
         config["extensions"] = tuple()
+        config["continue_learning"] = False
         return config
 
     @classmethod
@@ -121,6 +124,27 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         self._initialize_weights()
 
     def _initialize_weights(self):
+        use_initializers = True
+        if self._continue_learning:
+            #TODO this should probably done somewhere else
+            filename = os.path.join(self._workingdir, "..", "classifierCache",
+                                    "OpPickleCache.pkl")
+            if not os.path.exists(filename):
+                logger.warn("can't find trained model, starting from scratch")
+            else:
+                use_initializers = False
+                with open(filename, 'r') as f:
+                    model = pkl.load(f)
+                if isinstance(model, np.ndarray):
+                    model = model[0]
+                params = model.get_param_values()
+                self._nn.set_param_values(params)
+                logger.info("restored model from {}".format(filename))
+
+        if use_initializers:
+            self._initialize_weights_from_initializers()
+
+    def _initialize_weights_from_initializers(self):
         if isinstance(self._weight_initializer, WeightInitializer):
             iter_ = repeat(self._weight_initializer)
         else:
@@ -148,16 +172,17 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         vds = self._opValidData
 
         if self._regression:
-            channel = "valid_objective"
+            # channel = "valid_objective"
+            channel = "train_objective"
         else:
             channel = "valid_output_misclass"
 
-        lra = sgd.MonitorBasedLRAdjuster(channel_name=channel)
-        ext = [lra]
+        ext = []
         if channel is not None:
-            keep = best_params.MonitorBasedSaveBest(
-                channel_name=channel, store_best_model=True)
+            keep = MonitorBasedSaveBest.build(dict(channel=channel))
             ext.append(keep)
+            lra = sgd.MonitorBasedLRAdjuster(channel_name=channel)
+            ext.append(lra)
 
         for other in self._extensions:
             ext.append(build_operator(other, workingdir=self._workingdir))
@@ -171,12 +196,14 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         criteria = get_termination_criteria(epochs=self._max_epochs,
                                             channel=termination_channel)
 
+        monitors = {'train': tds, 'valid': vds}
+
         algorithm = sgd.SGD(learning_rate=self._learning_rate,
                             batch_size=self._batch_size,
                             learning_rule=learning_rule.Momentum(
                                 init_momentum=self._init_momentum),
                             termination_criterion=criteria,
-                            monitoring_dataset={'valid': vds},
+                            monitoring_dataset=monitors,
                             monitor_iteration_mode="sequential",
                             monitoring_batch_size=self._monitor_batch_size,
                             seed=None,
@@ -188,10 +215,10 @@ class OpMLPTrain(OpTrain, Classification, Regression):
         trainer.main_loop()
 
         # set best parameters to layer
-        params = keep.best_model.get_param_values()
-        self._nn.set_param_values(params)
+        params = keep.best_params
         best_cost = keep.best_cost
         logger.info("Restoring model with cost {}".format(best_cost))
+        self._nn.set_param_values(params)
 
         for ext in self.extensions_used:
             if isinstance(ext, PersistentTrainExtension):

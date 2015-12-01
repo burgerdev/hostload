@@ -5,7 +5,6 @@ from deeplearning.batch import run_batch
 
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers.mlp import NormalWeightInitializer
 from deeplearning.classifiers.mlp import LeastSquaresWeightInitializer
 from deeplearning.classifiers.mlp import PCAWeightInitializer
 
@@ -14,10 +13,6 @@ from deeplearning.data import OpStreamingHdf5Reader
 from deeplearning.features import OpRecent
 from deeplearning.features import OpSimpleCombiner
 from deeplearning.features import OpChain
-from deeplearning.features import OpMean
-from deeplearning.features import OpFairness
-from deeplearning.features import OpLinearWeightedMean
-from deeplearning.features import OpDiff
 from deeplearning.features import OpExponentialFilter
 
 from deeplearning.report import OpRegressionReport
@@ -25,8 +20,8 @@ from deeplearning.report import OpRegressionReport
 from deeplearning.targets import OpExponentiallySegmentedPattern
 
 from deeplearning.tools.generic import OpChangeDtype
-from deeplearning.tools.extensions import WeightKeeper
 from deeplearning.tools.extensions import ProgressMonitor
+from deeplearning.tools.fragile_extensions import SignalExtension
 
 from pylearn2.models import mlp
 
@@ -38,21 +33,17 @@ feature0 = {"class": OpExponentialFilter,
 
 feature1 = {"class": OpSimpleCombiner,
             "operators": ({"class": OpRecent, "window_size": window_size},
-#                          {"class": OpMean, "window_size": window_size},
-#                          {"class": OpLinearWeightedMean,
-#                           "window_size": window_size},
-#                          {"class": OpFairness, "window_size": window_size},
-#                          {"class": OpDiff})
                           )}
 
 features = {"class": OpChain, "operators": (feature0, feature1)}
 
-#initializer_choices = [(this, {"class": NormalWeightInitializer})
-#                       for this in (LeastSquaresWeightInitializer,
-#                                    PCAWeightInitializer)]
 initializer_choices = ({"class": PCAWeightInitializer},
+                       {"class": PCAWeightInitializer},
                        {"class": LeastSquaresWeightInitializer})
 
+extensions = ({"class": ProgressMonitor, "channel": "train_objective"},
+              {"class": ProgressMonitor, "channel": "valid_objective"},
+              {"class": SignalExtension})
 
 config = {"features": features,
           "target": {"class": OpExponentiallySegmentedPattern,
@@ -61,12 +52,12 @@ config = {"features": features,
           "train": {"class": OpMLPTrain,
                     "layer_classes": (mlp.Sigmoid, mlp.Sigmoid,),
                     "layer_sizes": (24, 16),
-                    "max_epochs": 10000,
+                    "max_epochs": 10000,  # 10k -> 3:11:39
                     "terminate_early": False,
-                    "learning_rate": [0.1, 0.2, 0.5],
+                    "learning_rate": 0.35,
                     "weight_initializer": initializer_choices,
-                    "extensions": ({"class": WeightKeeper},
-                                   {"class": ProgressMonitor})},
+                    "continue_learning": True,
+                    "extensions": extensions},
           "predict": {"class": OpMLPPredict},
           "report": {"class": OpRegressionReport},
           "preprocessing": (OpChangeDtype,)}

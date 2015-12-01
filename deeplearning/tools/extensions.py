@@ -2,18 +2,26 @@
 import os
 import cPickle as pkl
 
-from itertools import imap
+import numpy as np
 
 from pylearn2.train_extensions import TrainExtension
-from deeplearning.tools import Buildable
+
+from .abcs import Buildable
 
 
 class BuildableTrainExtension(TrainExtension, Buildable):
     @classmethod
     def build(cls, config, parent=None, graph=None, workingdir=None):
-        return cls(workingdir)
+        """
+        build an instance of this class with given configuration dict
+        """
+        obj = super(BuildableTrainExtension, cls).build(config, parent=parent,
+                                                        graph=graph)
 
-    def __init__(self, workingdir):
+        obj._wd = workingdir
+        return obj
+
+    def __init__(self, parent=None, graph=None, workingdir=None):
         self._wd = workingdir
         super(BuildableTrainExtension, self).__init__()
 
@@ -57,32 +65,76 @@ class ProgressMonitor(PersistentTrainExtension):
     keeps track of the model's weights at each monitor step
     """
 
+    @classmethod
+    def get_default_config(cls):
+        config = super(ProgressMonitor, cls).get_default_config()
+        config["channel"] = "valid_objective"
+        return config
+
     def on_monitor(self, model, dataset, algorithm):
         """
-        save the model's weights
+        save the desired channel
         """
-        channel = algorithm.monitor.channels["valid_objective"]
-        prog = channel.val_shared.get_value()
-        self._progress.append(prog)
-
-    def setup(self, model, dataset, algorithm):
-        """
-        initialize the weight list
-        """
-        self._progress = []
+        monitor = model.monitor
+        channels = monitor.channels
+        channel = channels[self._channel]
+        self._progress = channel.val_record
 
     def get_progress(self):
         return self._progress
 
     def store(self):
-        path = os.path.join(self._wd, "progressmonitor.pkl")
+        filename = "progress_{}.pkl".format(self._channel)
+        path = os.path.join(self._wd, filename)
         with open(path, "w") as f:
             pkl.dump(self._progress, f)
 
+
+class MonitorBasedSaveBest(BuildableTrainExtension):
+    """
+    similar to pylearn2's MonitorBasedSaveBest, but avoids memory hogging
+    (see https://github.com/lisa-lab/pylearn2/issues/1567)
+    """
+
+    @classmethod
+    def get_default_config(cls):
+        config = super(MonitorBasedSaveBest, cls).get_default_config()
+        config["channel"] = "valid_objective"
+        return config
+
+    def setup(self, model, dataset, algorithm):
+        self.best_cost = np.inf
+        self.best_params = model.get_param_values()
+
+    def on_monitor(self, model, dataset, algorithm):
+        """
+        Looks whether the model performs better than earlier. If it's the
+        case, saves the model.
+
+        Parameters
+        ----------
+        model : pylearn2.models.model.Model
+            model.monitor must contain a channel with name given by
+            self.channel_name
+        dataset : pylearn2.datasets.dataset.Dataset
+            Not used
+        algorithm : TrainingAlgorithm
+            Not used
+        """
+        monitor = model.monitor
+        channels = monitor.channels
+        channel = channels[self._channel]
+        val_record = channel.val_record
+        new_cost = val_record[-1]
+
+        if new_cost < self.best_cost:
+            self.best_cost = new_cost
+            self.best_params = model.get_param_values()
+
+
 try:
-    from pympler import summary
-    from pympler import muppy
-    from pympler import tracker
+    from .mem import traverse
+    from .mem import get_arrays
 except ImportError:
     pass
 else:
@@ -95,24 +147,20 @@ else:
             """
             add a new report about leaked objects
             """
-            current_summary = summary.summarize(muppy.get_objects())
-            self._diffs.append(self._tr.format_diff(self._last_summary,
-                                                    current_summary))
-
-            self._last_summary = current_summary
+            self._update_arrays()
 
         def setup(self, model, dataset, algorithm):
             """
             initialize the weight list
             """
-            self._diffs = []
-            self._tr = tracker.SummaryTracker()
-            self._last_summary = summary.summarize(muppy.get_objects())
+            self._new_arrays = []
+            self._id_set = set()
+            self._update_arrays()
 
         def store(self):
-            path = os.path.join(self._wd, "memleaks.log")
-            with open(path, "w") as f:
-                for gen in self._diffs:
-                    lines = imap("{}\n".format, gen)
-                    f.writelines(lines)
-                f.write("=============== EPOCH ===============\n")
+            traverse(self._new_arrays, start=True)
+
+        def _update_arrays(self):
+            self._new_arrays = [a for a in get_arrays()
+                                if id(a) not in self._id_set]
+            self._id_set.update(set(map(id, self._new_arrays)))
