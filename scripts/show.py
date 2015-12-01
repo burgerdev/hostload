@@ -6,6 +6,7 @@ Created on Mon Oct 19 14:19:53 2015
 """
 
 import os
+import glob
 import cPickle as pkl
 import warnings
 
@@ -14,7 +15,7 @@ import numpy as np
 from deeplearning.tools.serialization import loads
 from deeplearning.workflow import Workflow
 
-try:    
+try:
     from matplotlib import pyplot as plt
 except ImportError:
     warnings.warn("can't plot without matplotlib")
@@ -43,16 +44,23 @@ def plot_regression(workflow, dir_):
 
 
 def plot_convergence(dir_):
-    progress_file = os.path.join(dir_, "train", "progressmonitor.pkl")
-    if not os.path.exists(progress_file):
+    progress_glob = os.path.join(dir_, "train", "progress_*.pkl")
+    files = sorted(glob.glob(progress_glob))
+    if len(files) == 0:
         warnings.warn("no progress file found")
         return
 
-    with open(progress_file, "r") as f:
-        progress = np.asarray(pkl.load(f))
+    def handle_progress_file(progress_file, name):
+        with open(progress_file, "r") as f:
+            progress = np.asarray(pkl.load(f))
+            plt.semilogy(progress, label=name)
 
     plt.figure()
-    plt.semilogy(progress, label="objective (validation dataset)")
+    plt.hold(True)
+    for filename in files:
+        name = os.path.basename(filename).split(".")[0]
+        handle_progress_file(filename, name)
+
     plt.xlabel("epochs")
     plt.ylabel("objective")
     plt.legend()
