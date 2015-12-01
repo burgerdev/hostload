@@ -1,6 +1,7 @@
 
 import tempfile
 import os
+import datetime
 
 from lazyflow.graph import Graph
 
@@ -75,22 +76,19 @@ class Workflow(Buildable):
 
         w._initialize()
 
-        w._writeConfig(d)
-
-        try:
-            w._sanity_check()
-        except IncompatibleTargets:
-            w._cleanup()
-            raise
+        w._config = d
 
         return w
 
     def __init__(self, workingdir=None):
+        self._config = None
         self._graph = Graph()
         self._workingdir = workingdir
 
     def run(self):
+        self._pre_run()
         self._report.Output[...].block()
+        self._post_run()
 
     def set_classifier(self, classifier):
         self._predict.Classifier.disconnect()
@@ -140,6 +138,35 @@ class Workflow(Buildable):
         self.Features = split.All[0]
         self.Target = target.Output
 
+    def _pre_run(self):
+        assert self._config is not None,\
+            "workflow not configured - did you run build()?"
+        # write config file
+        s = dumps(self._config, indent=4, sort_keys=True)
+        fn = os.path.join(self._workingdir, "config.json")
+        with open(fn, "w") as f:
+            f.write(s)
+            f.write("\n")
+
+        # perform sanity checks, terminate early if incompatible
+        try:
+            self._sanity_check()
+        except IncompatibleTargets:
+            self._cleanup()
+            raise
+
+        # keep time for reporting
+        self._start_time = datetime.datetime.now()
+
+    def _post_run(self):
+        # keep time for reporting
+        time_elapsed = datetime.datetime.now() - self._start_time
+        # write config file
+        fn = os.path.join(self._workingdir, "elapsed_time.txt")
+        with open(fn, "w") as f:
+            f.write(str(time_elapsed))
+            f.write("\n")
+
     def _cleanup(self):
         c = self._predictionCache
         self._report.All[0].disconnect()
@@ -162,13 +189,6 @@ class Workflow(Buildable):
             raise IncompatibleTargets("incompatible prediction type")
         if not isinstance(self._report, t):
             raise IncompatibleTargets("incompatible report type")
-
-    def _writeConfig(self, d):
-        s = dumps(d, indent=4, sort_keys=True)
-        fn = os.path.join(self._workingdir, "config.json")
-        with open(fn, "w") as f:
-            f.write(s)
-            f.write("\n")
 
     @classmethod
     def get_default_config(cls):
