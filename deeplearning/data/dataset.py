@@ -30,7 +30,7 @@ def _assert_input_ready(method):
 
 def _warn_if_unwise(method):
     """
-    wrapper for OpDataset methods to prevent usage before input is ready
+    warns if a method is going to have low performance on a lazyflow dataset
     """
     @wraps(method)
     def wrapped(self, *args, **kwargs):
