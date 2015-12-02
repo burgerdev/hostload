@@ -51,7 +51,8 @@ class TestWorkflow(unittest.TestCase):
 
         def foo():
             with self.assertRaises(IncompatibleTargets):
-                Workflow.build(c, workingdir=self.wd)
+                w = Workflow.build(c, workingdir=self.wd)
+                w.run()
 
         c["target"] = {"class": OpFeatures}
         foo()
