@@ -53,7 +53,7 @@ class OpRegressionReport(_OpReport, Regression):
         fn = os.path.join(self.WorkingDir.value, "report.json")
 
         with open(fn, 'w') as f:
-            f.write(dumps(report))
+            f.write(dumps(report, indent=4, sort_keys=True))
             f.write("\n")
 
         result[:] = True
