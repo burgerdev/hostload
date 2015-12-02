@@ -123,6 +123,8 @@ class OpTarget(_OpTarget, Classification):
 
 
 class OpRegTarget(OpArrayPiperWithAccessCount, Regression, Buildable):
+    Valid = OutputSlot()
+
     @classmethod
     def build(cls, d, graph=None, parent=None, workingdir=None):
         op = cls(parent=parent, graph=graph)
@@ -133,6 +135,9 @@ class OpRegTarget(OpArrayPiperWithAccessCount, Regression, Buildable):
         self.Output.meta.shape = (self.Input.meta.shape[0], 1)
         self.Output.meta.dtype = np.float
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
+        self.Valid.meta.shape = self.Output.meta.shape[:1]
+        self.Valid.meta.axistags = vigra.defaultAxistags('t')
+        self.Valid.meta.dtype = np.uint8
 
     def execute(self, slot, subindex, roi, result):
         if slot is self.Valid:
