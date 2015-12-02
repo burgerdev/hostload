@@ -13,6 +13,7 @@ class OpRecent(Operator, Buildable):
     WindowSize = InputSlot()
 
     Output = OutputSlot()
+    Valid = OutputSlot()
 
     @classmethod
     def build(cls, d, parent=None, graph=None, workingdir=None):
@@ -26,8 +27,21 @@ class OpRecent(Operator, Buildable):
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
         self.Output.meta.dtype = self.Input.meta.dtype
 
+        self.Valid.meta.shape = (self.Input.meta.shape[0],)
+        self.Valid.meta.axistags = vigra.defaultAxistags('t')
+        self.Valid.dtype = np.uint8
+
     def execute(self, slot, subindex, roi, result):
         window = self.WindowSize.value
+
+        if slot is self.Valid:
+            result[:] = 1
+            first_valid_index = window - 1
+            num_invalid = first_valid_index - roi.start[0]
+            if num_invalid > 0:
+                result[:num_invalid] = 0
+            return
+
         padding_size = max(window - 1 - roi.start[0], 0)
 
         rem = tuple(self.Input.meta.shape[1:])

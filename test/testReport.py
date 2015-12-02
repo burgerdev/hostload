@@ -26,6 +26,7 @@ class TestReport(unittest.TestCase):
     def testClassification(self):
         pred = np.asarray([[0, 1], [0, 1], [1, 0], [1, 0]])
         gt = np.asarray([[0, 1], [0, 1], [0, 1], [1, 0]])
+        valid = np.ones(pred.shape[:1], dtype=np.uint8)
         desc = np.zeros((len(gt),), dtype=np.int)
         desc[:2] = SplitTypes.TRAIN
         desc[2:] = SplitTypes.TEST
@@ -34,6 +35,9 @@ class TestReport(unittest.TestCase):
         op.All.resize(2)
         op.All[0].setValue(pred)
         op.All[1].setValue(gt)
+        op.Valid.resize(2)
+        op.Valid[0].setValue(valid)
+        op.Valid[1].setValue(valid)
         op.Description.setValue(desc)
 
         assert op.Output.value
@@ -61,6 +65,7 @@ class TestReport(unittest.TestCase):
     def testRegression(self):
         pred = np.asarray([0, 1, 2, 3])[:, np.newaxis] / 4.0
         gt = np.asarray([0, 1, 0, 2.99])[:, np.newaxis] / 4.0
+        valid = np.ones(pred.shape[:1], dtype=np.uint8)
         desc = np.zeros((len(gt),), dtype=np.int)
         desc[:2] = SplitTypes.TRAIN
         desc[2:] = SplitTypes.TEST
@@ -71,6 +76,9 @@ class TestReport(unittest.TestCase):
         op.All.resize(2)
         op.All[0].setValue(pred)
         op.All[1].setValue(gt)
+        op.Valid.resize(2)
+        op.Valid[0].setValue(valid)
+        op.Valid[1].setValue(valid)
         op.Description.setValue(desc)
 
         assert op.Output.value

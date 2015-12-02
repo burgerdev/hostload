@@ -1,10 +1,11 @@
 
+import numpy as np
+import vigra
 
 from lazyflow.operator import Operator
 from lazyflow.operator import InputSlot
 from lazyflow.operator import OutputSlot
 from lazyflow.operators.generic import OpMultiArrayStacker
-from lazyflow.operators import OpReorderAxes
 
 from deeplearning.tools import Buildable
 from deeplearning.tools import build_operator
@@ -18,6 +19,7 @@ class OpSimpleCombiner(Operator, Buildable):
     """
     Input = InputSlot()
     Output = OutputSlot()
+    Valid = OutputSlot()
 
     @classmethod
     def build(cls, config, parent=None, graph=None, workingdir=None):
@@ -30,20 +32,45 @@ class OpSimpleCombiner(Operator, Buildable):
 
     def __init__(self, to_combine, *args, **kwargs):
         super(OpSimpleCombiner, self).__init__(*args, **kwargs)
-        combiner = OpMultiArrayStacker(parent=self)
-        combiner.AxisFlag.setValue('c')
 
         operators = [build_operator(item, parent=self) for item in to_combine]
+
+        combiner = OpMultiArrayStacker(parent=self)
+        combiner.AxisFlag.setValue('c')
         combiner.Images.resize(len(operators))
+
         for index, operator in enumerate(operators):
             combiner.Images[index].connect(operator.Output)
             operator.Input.connect(self.Input)
+
+        valid_combiner = OpMultiArrayStacker(parent=self)
+        valid_combiner.AxisFlag.setValue('c')
+        valid_operators = filter(lambda op: hasattr(op, "Valid"), operators)
+        valid_combiner.Images.resize(len(valid_operators))
+
+        for index, operator in enumerate(valid_operators):
+            valid_combiner.Images[index].connect(operator.Valid)
+
         self._combiner = combiner
+        self._valid_combiner = valid_combiner
         self._operators = operators
         self.Output.connect(combiner.Output)
 
+    def setupOutputs(self):
+        size = self._operators[0].Input.meta.shape[0]
+        self.Valid.meta.shape = (size,)
+        self.Valid.meta.axistags = vigra.defaultAxistags('t')
+        self.Valid.meta.dtype = np.uint8
+
+    def execute(self, slot, subindex, roi, result):
+        assert slot is self.Valid
+        start = roi.start[0]
+        stop = roi.stop[0]
+        valid = self._valid_combiner.Output[start:stop, :].wait()
+        result[:] = np.all(valid, axis=1)
+
     def propagateDirty(self, slot, subindex, roi):
-        # is propagated internally
+        # Output is propagated internally, Valid should be static
         pass
 
 
@@ -55,6 +82,7 @@ class OpChain(Operator, Buildable):
     """
     Input = InputSlot()
     Output = OutputSlot()
+    Valid = OutputSlot()
 
     @classmethod
     def build(cls, config, parent=None, graph=None, workingdir=None):
@@ -67,10 +95,6 @@ class OpChain(Operator, Buildable):
 
     def __init__(self, to_combine, *args, **kwargs):
         super(OpChain, self).__init__(*args, **kwargs)
-        #reorder = OpReorderAxes(parent=self)
-        #reorder.AxisOrder.setValue('tc')
-        #reorder.Input.connect(self.Input)
-        #next_slot = reorder.Output
         next_slot = self.Input
 
         operators = [build_operator(item, parent=self) for item in to_combine]
@@ -78,9 +102,32 @@ class OpChain(Operator, Buildable):
         for operator in operators:
             operator.Input.connect(next_slot)
             next_slot = operator.Output
+
+        valid_combiner = OpMultiArrayStacker(parent=self)
+        valid_combiner.AxisFlag.setValue('c')
+        valid_operators = filter(lambda op: hasattr(op, "Valid"), operators)
+        valid_combiner.Images.resize(len(valid_operators))
+
+        for index, operator in enumerate(valid_operators):
+            valid_combiner.Images[index].connect(operator.Valid)
+
         self.Output.connect(next_slot)
-        self.operators = operators
+        self._operators = operators
+        self._valid_combiner = valid_combiner
+
+    def setupOutputs(self):
+        size = self._operators[0].Input.meta.shape[0]
+        self.Valid.meta.shape = (size,)
+        self.Valid.meta.axistags = vigra.defaultAxistags('t')
+        self.Valid.meta.dtype = np.uint8
+
+    def execute(self, slot, subindex, roi, result):
+        assert slot is self.Valid
+        start = roi.start[0]
+        stop = roi.stop[0]
+        valid = self._valid_combiner.Output[start:stop, :].wait()
+        result[:] = np.all(valid, axis=1)
 
     def propagateDirty(self, slot, subindex, roi):
-        # is propagated internally
+        # Output is propagated internally, Valid should be static
         pass

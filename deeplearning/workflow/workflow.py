@@ -132,6 +132,10 @@ class Workflow(Buildable):
         report.All.resize(2)
         report.All[0].connect(pc.Output)
         report.All[1].connect(target.Output)
+
+        report.Valid.resize(2)
+        report.Valid[0].connect(features.Valid)
+        report.Valid[1].connect(target.Valid)
         report.Description.connect(split.Description)
 
         self.Prediction = predict.Output

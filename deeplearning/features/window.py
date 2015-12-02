@@ -13,6 +13,7 @@ class OpWindow(Operator, Buildable):
     WindowSize = InputSlot()
 
     Output = OutputSlot()
+    Valid = OutputSlot()
 
     @classmethod
     def build(cls, config, parent=None, graph=None, workingdir=None):
@@ -34,22 +35,35 @@ class OpWindow(Operator, Buildable):
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
         self.Output.meta.dtype = np.float32
 
+        self.Valid.meta.shape = (self.Input.meta.shape[0],)
+        self.Valid.meta.axistags = vigra.defaultAxistags('t')
+        self.Valid.meta.dtype = np.uint8
+
     def execute(self, slot, subindex, roi, result):
         window = self.WindowSize.value
-        padding_size = max(window - 1 - roi.start[0], 0)
-        padding = np.zeros((padding_size,), dtype=np.float32)
-        new_start = (roi.start[0] - window + 1 + padding_size,)
-        new_stop = (roi.stop[0],)
-        new_roi = SubRegion(self.Input, start=new_start, stop=new_stop)
-        x = self.Input.get(new_roi).wait()
-        x = vigra.taggedView(x, axistags=self.Input.meta.axistags)
-        x = x.withAxes('t').view(np.ndarray)
-        x = np.concatenate((padding, x))
 
-        res_view = vigra.taggedView(result, axistags=self.Output.meta.axistags)
-        res_view = res_view.withAxes('t')
+        if slot is self.Output:
+            padding_size = max(window - 1 - roi.start[0], 0)
+            padding = np.zeros((padding_size,), dtype=np.float32)
+            new_start = (roi.start[0] - window + 1 + padding_size,)
+            new_stop = (roi.stop[0],)
+            new_roi = SubRegion(self.Input, start=new_start, stop=new_stop)
+            x = self.Input.get(new_roi).wait()
+            x = vigra.taggedView(x, axistags=self.Input.meta.axistags)
+            x = x.withAxes('t').view(np.ndarray)
+            x = np.concatenate((padding, x))
 
-        self.applyWindowFunction(x, window, res_view)
+            res_view = vigra.taggedView(result,
+                                        axistags=self.Output.meta.axistags)
+            res_view = res_view.withAxes('t')
+
+            self.applyWindowFunction(x, window, res_view)
+        elif slot is self.Valid:
+            result[:] = 1
+            first_valid_index = window - 1
+            num_invalid = first_valid_index - roi.start[0]
+            if num_invalid > 0:
+                result[:num_invalid] = 0
 
     def propagateDirty(self, slot, subindex, roi):
         roi = roi.copy()

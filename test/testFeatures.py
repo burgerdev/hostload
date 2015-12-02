@@ -37,6 +37,25 @@ class TestOpMean(unittest.TestCase):
 
         np.testing.assert_array_almost_equal(y.squeeze(), exp[1:4])
 
+    def testValid(self):
+
+        op, exp = self.getOp()
+        window = op.WindowSize.value
+        a = window - 1
+        b = 7 - a
+        exp = np.asarray([0]*a + [1]*b)
+        op.Input.setValue(self.data)
+
+        y = op.Valid[...].wait()
+        np.testing.assert_array_equal(y.shape, (7,))
+
+        np.testing.assert_array_almost_equal(y, exp)
+
+        y = op.Valid[1:4].wait()
+        np.testing.assert_array_equal(y.shape, (3,))
+
+        np.testing.assert_array_almost_equal(y, exp[1:4])
+
     def getOp(self):
         op = OpMean(graph=Graph())
         op.WindowSize.setValue(self.window_size)

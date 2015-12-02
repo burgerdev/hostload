@@ -15,6 +15,7 @@ from deeplearning.split import SplitTypes
 
 class _OpReport(Operator, Buildable):
     All = InputSlot(level=1)
+    Valid = InputSlot(level=1)
     Description = InputSlot()
     WorkingDir = InputSlot()
     Output = OutputSlot()
@@ -61,13 +62,24 @@ class OpRegressionReport(_OpReport, Regression):
         report = dict()
         prediction = self.All[0][...].wait()
         expected = self.All[1][...].wait()
+        valid_features = self.Valid[0][...].wait()
+        valid_target = self.Valid[1][...].wait()
+        valid = np.logical_and(valid_features, valid_target).astype(np.bool)
+
         samples = self.Description.value == SplitTypes.TEST
         levels = self.Levels.value
-        m = len(prediction)
+
+        num_all_valid = valid.sum()
+        num_test = samples.sum()
+        num_all = len(prediction)
+        prediction = prediction[valid]
+        expected = expected[valid]
+        print(samples.shape, valid.shape)
+        samples = samples[valid]
+        num_test_valid = samples.sum()
 
         prediction_test = prediction[samples]
         expected_test = expected[samples]
-        n = len(prediction_test)
 
         report["all_MSE"] = _mse(prediction, expected)
         report["test_MSE"] = _mse(prediction_test, expected_test)
@@ -77,6 +89,11 @@ class OpRegressionReport(_OpReport, Regression):
         report["test_misclass"] = _misclass_from_regression(prediction_test,
                                                             expected_test,
                                                             levels)
+
+        report["test_num_examples"] = num_test
+        report["test_num_valid_examples"] = num_test_valid
+        report["all_num_examples"] = num_all
+        report["all_num_valid_examples"] = num_all_valid
 
         orderedReport = OrderedDict()
         orderedReport["levels"] = levels

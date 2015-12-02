@@ -4,6 +4,7 @@ import vigra
 
 from lazyflow.utility.testing import OpArrayPiperWithAccessCount
 from lazyflow.operators import OpReorderAxes
+from lazyflow.operator import OutputSlot
 
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
@@ -71,14 +72,29 @@ class OpShuffledLinspace(_BaseDataset):
 
 
 class OpFeatures(OpReorderAxes, Buildable):
+    Valid = OutputSlot()
+
     @staticmethod
     def build(d, graph=None, parent=None, workingdir=None):
         op = OpFeatures(parent=parent, graph=graph)
         op.AxisOrder.setValue('tc')
         return op
 
+    def setupOutputs(self):
+        super(OpFeatures, self).setupOutputs()
+        self.Valid.meta.shape = self.Output.meta.shape[:1]
+        self.Valid.meta.axistags = vigra.defaultAxistags('t')
+        self.Valid.meta.dtype = np.uint8
+
+    def execute(self, slot, subindex, roi, result):
+        if slot is not self.Valid:
+            super(OpFeatures, self).execute(slot, subindex, roi, result)
+        else:
+            result[:] = 1
+
 
 class _OpTarget(OpArrayPiperWithAccessCount, Buildable):
+    Valid = OutputSlot()
     @classmethod
     def build(cls, d, graph=None, parent=None, workingdir=None):
         op = cls(parent=parent, graph=graph)
@@ -89,11 +105,17 @@ class _OpTarget(OpArrayPiperWithAccessCount, Buildable):
         self.Output.meta.shape = (self.Input.meta.shape[0], 2)
         self.Output.meta.dtype = np.float
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
+        self.Valid.meta.shape = self.Output.meta.shape[:1]
+        self.Valid.meta.axistags = vigra.defaultAxistags('t')
+        self.Valid.meta.dtype = np.uint8
 
     def execute(self, slot, subindex, roi, result):
-        data = self.Input[roi.start[0]:roi.stop[0]].wait()
-        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
-            result[:, i] = np.where(data > .499, c, 1-c)
+        if slot is not self.Valid:
+            data = self.Input[roi.start[0]:roi.stop[0]].wait()
+            for i, c in enumerate(range(roi.start[1], roi.stop[1])):
+                result[:, i] = np.where(data > .499, c, 1-c)
+        else:
+            result[:] = 1
 
 
 class OpTarget(_OpTarget, Classification):
@@ -113,6 +135,9 @@ class OpRegTarget(OpArrayPiperWithAccessCount, Regression, Buildable):
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
 
     def execute(self, slot, subindex, roi, result):
+        if slot is self.Valid:
+            result[:] = 1
+            return
         data = self.Input[roi.start[0]:roi.stop[0]].wait()
         result[:, 0] = 1 - data
 
@@ -132,12 +157,18 @@ class OpRandomUnitSquare(_BaseDataset):
 
 class OpXORTarget(OpRegTarget):
     def execute(self, slot, subindex, roi, result):
+        if slot is self.Valid:
+            result[:] = 1
+            return
         data = self.Input[roi.start[0]:roi.stop[0], :].wait()
         result[:, 0] = 1 - np.square(1 - data.sum(axis=1))
 
 
 class OpNormTarget(OpRegTarget):
     def execute(self, slot, subindex, roi, result):
+        if slot is self.Valid:
+            result[:] = 1
+            return
         data = self.Input[roi.start[0]:roi.stop[0]].wait()
         result[:, 0] = np.sqrt(np.square(data).sum(axis=1)/2.0)
 

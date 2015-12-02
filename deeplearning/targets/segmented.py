@@ -16,6 +16,7 @@ class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
     NumSegments = InputSlot(value=4)
 
     Output = OutputSlot()
+    Valid = OutputSlot()
 
     _Input = OutputSlot()
 
@@ -40,11 +41,26 @@ class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
         self.Output.meta.dtype = np.float32
 
+        self.Valid.meta.shape = (num_examples,)
+        self.Valid.meta.axistags = vigra.defaultAxistags('t')
+        self.Valid.meta.dtype = np.uint8
+
     def execute(self, slot, subindex, roi, result):
         b = self.BaselineSize.value
+        max_t = self.Output.meta.shape[0]
+
+        if slot is self.Valid:
+            max_segment = b*2**(self.Output.meta.shape[1] - 1)
+            result[:] = 1
+            num_invalid = (max_segment - 1) - (max_t - roi.stop[0])
+            if num_invalid > 0:
+                index = roi.stop[0] - roi.start[0] - num_invalid
+                index = max(index, 0)
+                result[index:] = 0
+            return
 
         max_segment = b*2**(roi.stop[1] - 1)
-        max_t = self.Output.meta.shape[0]
+
         new_start = (roi.start[0],)
         if roi.stop[0]+max_segment-1 <= max_t:
             new_stop = (roi.stop[0]+max_segment-1,)

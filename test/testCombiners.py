@@ -24,7 +24,7 @@ class TestCombiners(unittest.TestCase):
 
     def testOpSimpleCombiner(self):
         op1_config = {"class": OpMean, "window_size": 5}
-        op2_config = {"class": OpFairness, "window_size": 5}
+        op2_config = {"class": OpFairness, "window_size": 7}
 
         op1 = OpMean.build(op1_config, graph=Graph())
         op2 = OpFairness.build(op2_config, graph=Graph())
@@ -52,6 +52,10 @@ class TestCombiners(unittest.TestCase):
         fair_gt = op2.Output[...].wait()
         np.testing.assert_array_equal(fair, fair_gt)
 
+        valid = comb.Valid[...].wait()
+        np.testing.assert_array_equal(valid[:6], 0)
+        np.testing.assert_array_equal(valid[6:], 1)
+
     def testOpChain(self):
         n = 15
         op1_config = OpChangeDtype
@@ -73,3 +77,7 @@ class TestCombiners(unittest.TestCase):
         expected = expected.astype(np.float32)
         expected = expected[:, np.newaxis]
         np.testing.assert_array_equal(out, expected)
+
+        valid = chain.Valid[...].wait()
+        np.testing.assert_array_equal(valid[0], 0)
+        np.testing.assert_array_equal(valid[1:], 1)

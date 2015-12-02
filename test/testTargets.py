@@ -44,6 +44,13 @@ class TestOpExponentiallySegmentedpattern(unittest.TestCase):
 
         np.testing.assert_array_almost_equal(y.T, exp[1:4, :].T)
 
+        valid = op.Valid[...].wait()
+        np.testing.assert_array_equal(valid, [1, 1, 1, 1, 0, 0, 0])
+        valid = op.Valid[:5].wait()
+        np.testing.assert_array_equal(valid, [1, 1, 1, 1, 0])
+        valid = op.Valid[3:5].wait()
+        np.testing.assert_array_equal(valid, [1, 0])
+
 
 class TestOpDiscretize(unittest.TestCase):
     def setUp(self):
