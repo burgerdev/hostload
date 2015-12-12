@@ -74,7 +74,6 @@ class OpRegressionReport(_OpReport, Regression):
         num_all = len(prediction)
         prediction = prediction[valid]
         expected = expected[valid]
-        print(samples.shape, valid.shape)
         samples = samples[valid]
         num_test_valid = samples.sum()
 
