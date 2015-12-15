@@ -11,10 +11,23 @@ from lazyflow.operator import Operator, InputSlot, OutputSlot
 from deeplearning.tools import Buildable
 from deeplearning.tools import get_rng
 
+try:
+    from scipy import cluster
+except ImportError:
+    _HAVE_SCIPY = False
+else:
+    _HAVE_SCIPY = True
+
 
 class ModelWeightInitializer(Operator, Buildable):
     Data = InputSlot()
     Target = InputSlot()
+
+    def setupOutputs(self):
+        pass
+
+    def propagateDirty(self, slot, subindex, roi):
+        pass
 
     def init_model(self, model):
         sub_inits = self._initializers
@@ -311,4 +324,98 @@ class OpForwardLayers(Operator):
         shared = theano.shared(inputs)
         for layer in self._layers:
             shared = layer.fprop(shared)
-        result[:] = shared.eval()
+        result[:] = shared.eval()[..., roi.start[1]:roi.stop[1]]
+
+
+class OptimalInitializer(ModelWeightInitializer):
+    """
+    optimal initializer (according to approximation theory) for Sigmoid layers
+    """
+
+    def __init__(self, *args, **kwargs):
+        assert _HAVE_SCIPY, "need scipy for using this initializer"
+        super(OptimalInitializer, self).__init__(*args, **kwargs)
+
+    def init_model(self, model):
+        if len(model.layers) != 3:
+            raise ValueError("currently only 3-layer models supported")
+
+        #TODO check if model really is sigmoid
+
+        n_vis = model.get_input_space().dim
+        n_centroids = model.layers[1].get_output_space().dim
+        n_intermediate = model.layers[0].get_output_space().dim
+        if n_intermediate != 2*n_vis*n_centroids:
+            raise ValueError("wrong number of neurons in layer 0")
+
+        centroids = self._get_cluster_centroids(n_centroids)
+
+        weights, biases = self._get_weights(centroids)
+
+        for weight, bias, layer in zip(weights, biases, model.layers):
+            weight = weight.astype(np.float32)
+            layer.set_weights(weight)
+            bias = bias.astype(np.float32)
+            layer.set_biases(bias)
+
+    @classmethod
+    def get_default_config(cls):
+        config = super(OptimalInitializer, cls).get_default_config()
+        config["rng"] = get_rng()
+        config["num_clusters"] = 5
+        del config["initializers"]
+        return config
+
+    def _get_cluster_centroids(self, n_centroids):
+        data = self.Data[...].wait()
+        target = self.Target[...].wait()
+        concat = np.concatenate((data, target), axis=1)
+        centroids, _ = cluster.vq.kmeans(concat, n_centroids)
+        print(centroids)
+        #assert False
+        return centroids
+
+    @classmethod
+    def _get_weights(cls, centroids):
+        """
+        last axis of centroids should be target value
+        """
+        scale = 5  # FIXME
+        normalization = 0.2449  # (1-np.exp(-.5))/(1+np.exp(-.5))
+
+        weights = []
+        biases = []
+
+        n_vis = centroids.shape[1] - 1
+        n_centroids = centroids.shape[0]
+        n_intermediate = 2*n_vis*n_centroids
+
+        # first layer: bump functions
+        weights0 = np.zeros((n_vis, n_intermediate))
+        biases0 = np.zeros((n_intermediate,))
+
+        # second layer: sigma of bump
+        weights1 = np.zeros((n_intermediate, n_centroids))
+        biases1 = np.ones((n_centroids,))*scale*(.5 - n_vis)
+
+        for i in range(n_centroids):
+            centroid = centroids[i, :-1]
+            eye = scale*np.eye(n_vis)
+            weights0[:, 2*i*n_vis:(2*i+1)*n_vis] = eye
+            weights0[:, (2*i+1)*n_vis:(2*i+2)*n_vis] = eye
+            biases0[2*i*n_vis:(2*i+1)*n_vis] = .5 - scale*centroid
+            biases0[(2*i+1)*n_vis:(2*i+2)*n_vis] = -.5 - scale*centroid
+
+            weights1[2*i*n_vis:(2*i+1)*n_vis, i] = scale/normalization
+            weights1[(2*i+1)*n_vis:(2*i+2)*n_vis, i] = -scale/normalization
+
+        weights.append(weights0)
+        weights.append(weights1)
+        biases.append(biases0)
+        biases.append(biases1)
+
+        # last layer: weighting of inputs
+        weights.append(centroids[:, -1:])
+        biases.append(np.zeros(1,))
+
+        return weights, biases

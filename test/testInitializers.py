@@ -2,10 +2,12 @@
 import unittest
 
 import numpy as np
+import vigra
 
 from deeplearning.classifiers.mlp_init import PCAWeightInitializer
 from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
 from deeplearning.classifiers.mlp_init import OpForwardLayers
+from deeplearning.classifiers.mlp_init import OptimalInitializer
 
 from lazyflow.graph import Graph
 
@@ -85,3 +87,45 @@ class TestInitializers(unittest.TestCase):
         np.testing.assert_array_equal(op.Output.meta.shape, self.X.shape)
         out = op.Output[...].wait()
         np.testing.assert_array_almost_equal(out, self.X)
+
+    def testOptimalInit(self):
+        x = np.linspace(0, 1)
+        X, Y = np.meshgrid(x, x)
+        x = X.ravel()
+        y = Y.ravel()
+        vol = np.zeros((X.size, 2), dtype=np.float32)
+        vol[:, 0] = x
+        vol[:, 1] = y
+        vol = vigra.taggedView(vol, axistags='tc')
+
+        x = np.asarray([0, 0, 1, 1, .5])
+        y = np.asarray([0, 1, 0, 1, .5])
+        vol = np.zeros((5, 2), dtype=np.float32)
+        vol[:, 0] = x
+        vol[:, 1] = y
+        vol = vigra.taggedView(vol, axistags='tc')
+
+        z = x*(1-y) + y*(1-x)
+        z = vigra.taggedView(z[:, np.newaxis], axistags='tc')
+
+        x = np.asarray([0, 0, 1, 1, .5])
+        y = np.asarray([0, 1, 0, 1, .5])
+
+        nvis = 2
+        ncent = 5
+        layers = [Sigmoid(layer_name='bumps', irange=0, dim=2*nvis*ncent),
+                  Sigmoid(layer_name='cents', irange=0, dim=ncent),
+                  Linear(layer_name='out', irange=0, dim=1)]
+        mlp = MLP(layers=layers, nvis=nvis)
+
+        init = OptimalInitializer.build({}, graph=Graph())
+        init.Data.setValue(vol)
+        init.Target.setValue(z)
+        init.init_model(mlp)
+
+        op = OpForwardLayers(layers[:], graph=Graph())
+        op.Input.setValue(vol)
+
+        z_pred = op.Output[..., 0].wait().squeeze()
+        assert max(z_pred[0], z_pred[3]) < z_pred[4]
+        assert min(z_pred[1], z_pred[2]) > z_pred[4]
