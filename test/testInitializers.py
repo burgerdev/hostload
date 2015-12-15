@@ -3,9 +3,9 @@ import unittest
 
 import numpy as np
 
-from deeplearning.classifiers.mlp import PCAWeightInitializer
-from deeplearning.classifiers.mlp import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp import OpForwardLayers
+from deeplearning.classifiers.mlp_init import PCAWeightInitializer
+from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
+from deeplearning.classifiers.mlp_init import OpForwardLayers
 
 from lazyflow.graph import Graph
 

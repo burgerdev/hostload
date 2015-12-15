@@ -14,10 +14,8 @@ from deeplearning.workflow import Workflow
 from deeplearning.split import OpTrainTestSplit
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers.mlp import NormalWeightInitializer
-from deeplearning.classifiers.mlp import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp import FilterWeightInitializer
-from deeplearning.classifiers.mlp import PCAWeightInitializer
+from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
+from deeplearning.classifiers.mlp_init import PCAWeightInitializer
 from deeplearning.data import OpPickleCache
 from deeplearning.data import OpHDF5Cache
 from deeplearning.data import OpStreamingHdf5Reader

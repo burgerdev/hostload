@@ -5,8 +5,8 @@ from deeplearning.batch import run_batch
 
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers.mlp import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp import PCAWeightInitializer
+from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
+from deeplearning.classifiers.mlp_init import PCAWeightInitializer
 
 from deeplearning.data import OpStreamingHdf5Reader
 
@@ -52,7 +52,7 @@ config = {"features": features,
           "train": {"class": OpMLPTrain,
                     "layer_classes": (mlp.Sigmoid, mlp.Sigmoid,),
                     "layer_sizes": (24, 16),
-                    "max_epochs": 10000,  # 10k -> 3:11:39
+                    "max_epochs": 300,  # 10k -> 3:11:39
                     "terminate_early": False,
                     "learning_rate": 0.35,
                     "weight_initializer": initializer_choices,
