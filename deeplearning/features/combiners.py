@@ -1,3 +1,10 @@
+"""
+Operators to combine a number of feature operators.
+
+Feature operators can be combined *horizontally*, such that all features are
+available at the output, or *vertically*, such that each feature is fed into
+the next operator.
+"""
 
 import numpy as np
 import vigra
@@ -45,7 +52,7 @@ class OpSimpleCombiner(Operator, Buildable):
 
         valid_combiner = OpMultiArrayStacker(parent=self)
         valid_combiner.AxisFlag.setValue('c')
-        valid_operators = filter(lambda op: hasattr(op, "Valid"), operators)
+        valid_operators = [op for op in operators if hasattr(op, "Valid")]
         valid_combiner.Images.resize(len(valid_operators))
 
         for index, operator in enumerate(valid_operators):
@@ -105,7 +112,7 @@ class OpChain(Operator, Buildable):
 
         valid_combiner = OpMultiArrayStacker(parent=self)
         valid_combiner.AxisFlag.setValue('c')
-        valid_operators = filter(lambda op: hasattr(op, "Valid"), operators)
+        valid_operators = [op for op in operators if hasattr(op, "Valid")]
         valid_combiner.Images.resize(len(valid_operators))
 
         for index, operator in enumerate(valid_operators):

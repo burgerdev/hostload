@@ -1,3 +1,7 @@
+"""
+This module contains just one feature operator, OpRecent.
+"""
+
 
 import numpy as np
 import vigra
@@ -9,6 +13,11 @@ from deeplearning.tools import Buildable
 
 
 class OpRecent(Operator, Buildable):
+    """
+    Provides the `window_size` most recent input values as feature channels.
+
+    This functionality is also known as `lag operator` or `backshift operator`.
+    """
     Input = InputSlot()
     WindowSize = InputSlot()
 
@@ -49,23 +58,23 @@ class OpRecent(Operator, Buildable):
         new_stop = (roi.stop[0],) + rem
         new_roi = SubRegion(self.Input, start=new_start, stop=new_stop)
 
-        x = self.Input.get(new_roi).wait()
-        x = vigra.taggedView(x, axistags=self.Input.meta.axistags)
-        x = x.withAxes('t').view(np.ndarray)
+        input_ = self.Input.get(new_roi).wait()
+        input_ = vigra.taggedView(input_, axistags=self.Input.meta.axistags)
+        input_ = input_.withAxes('t').view(np.ndarray)
 
-        padding = np.ones((padding_size,), dtype=np.float32) * x[0]
+        padding = np.ones((padding_size,), dtype=np.float32) * input_[0]
 
-        x = np.concatenate((padding, x))
+        input_ = np.concatenate((padding, input_))
         n_examples = roi.stop[0] - roi.start[0]
 
-        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
-            result[:, i] = x[window-c-1:window-c-1+n_examples]
+        for i, j in enumerate(range(roi.start[1], roi.stop[1])):
+            result[:, i] = input_[window-j-1:window-j-1+n_examples]
 
     def propagateDirty(self, slot, subindex, roi):
         window = self.WindowSize.value
-        n = self.Output.meta.shape[0]
-        m = min(roi.stop[0] + n - 1, n)
+        max_size = self.Output.meta.shape[0]
+        max_size = min(roi.stop[0] + max_size - 1, max_size)
         new_start = (roi.start[0], 0)
-        new_stop = (m, window)
+        new_stop = (max_size, window)
         new_roi = SubRegion(self.Output, start=new_start, stop=new_stop)
         self.Output.setDirty(new_roi)

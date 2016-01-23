@@ -324,7 +324,8 @@ class OpForwardLayers(Operator):
         shared = theano.shared(inputs)
         for layer in self._layers:
             shared = layer.fprop(shared)
-        result[:] = shared.eval()[..., roi.start[1]:roi.stop[1]]
+        forwarded = np.asarray(shared.eval())
+        result[:] = forwarded[..., roi.start[1]:roi.stop[1]]
 
 
 class OptimalInitializer(ModelWeightInitializer):

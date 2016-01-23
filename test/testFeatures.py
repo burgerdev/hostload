@@ -13,6 +13,7 @@ from deeplearning.features import OpLinearWeightedMean
 from deeplearning.features import OpExponentialFilter
 from deeplearning.features import OpFairness
 from deeplearning.features import OpRecent
+from deeplearning.features import OpGaussianSmoothing
 
 
 class TestOpMean(unittest.TestCase):
@@ -135,3 +136,19 @@ class TestOpRecent(TestOpMean):
                           [5, 5, 7, 3, 4, 10, 2],
                           [5, 5, 5, 7, 3, 4, 10]]).T
         return op, exp
+
+
+class TestOpGaussianSmoothing(unittest.TestCase):
+    def setUp(self):
+        self.window_size = 3
+        x = np.asarray([5, 7, 3, 4, 10, 2, 3])
+        x = vigra.taggedView(x, axistags='t')
+        self.data = x
+
+    def testSimple(self):
+
+        op = OpGaussianSmoothing.build({"window_size": self.window_size},
+                                       graph=Graph())
+        op.Input.setValue(self.data)
+
+        y = op.Output[...].wait()

@@ -161,7 +161,7 @@ generated-members=REQUEST,acl_users,aq_parent
 [MISCELLANEOUS]
 
 # List of note tags to take in consideration, separated by a comma.
-notes=FIXME,XXX,TODO
+notes=FIXME,XXX,TODO,HACK,BUG
 
 
 [BASIC]
@@ -173,10 +173,10 @@ required-attributes=
 bad-functions=map,filter,input
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,j,k,ex,Run,_
+good-names=i,j,k,ex,Run,_,op
 
 # Bad variable names which should always be refused, separated by a comma
-bad-names=foo,bar,baz,toto,tutu,tata
+bad-names=foo,bar,baz,toto,tutu,tata,bla
 
 # Colon-delimited sets of names that determine each other's naming style when
 # the name regexes allow several styles.
