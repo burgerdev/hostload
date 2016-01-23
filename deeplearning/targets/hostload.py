@@ -1,3 +1,6 @@
+"""
+Target for google hostload classification according to Kondo et.al.
+"""
 
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 from lazyflow.operators import OpReorderAxes
@@ -9,6 +12,12 @@ from deeplearning.tools import Buildable
 
 
 class OpHostloadTarget(Operator, Buildable):
+    """
+    Wrapper class that
+      * drops the 'c' axis
+      * segments exponentially
+      * discretizes
+    """
     Input = InputSlot()
     WindowSize = InputSlot()
     NumLevels = InputSlot()
@@ -26,16 +35,16 @@ class OpHostloadTarget(Operator, Buildable):
         self._drop = OpReorderAxes(parent=self)
         self._drop.AxisOrder.setValue('t')
 
-        self._opExp = OpExponentiallySegmentedPattern(parent=self)
-        self._opExp.NumSegments.setValue(1)
-        self._opExp.BaselineSize.connect(self.WindowSize)
+        self._exp = OpExponentiallySegmentedPattern(parent=self)
+        self._exp.NumSegments.setValue(1)
+        self._exp.BaselineSize.connect(self.WindowSize)
 
-        self._opDisc = OpDiscretize(parent=self)
-        self._opDisc.NumLevels.connect(self.NumLevels)
+        self._disc = OpDiscretize(parent=self)
+        self._disc.NumLevels.connect(self.NumLevels)
 
-        self.Output.connect(self._opDisc.Output)
-        self._opDisc.Input.connect(self._opExp.Output)
-        self._opExp.Input.connect(self._drop.Output)
+        self.Output.connect(self._disc.Output)
+        self._disc.Input.connect(self._exp.Output)
+        self._exp.Input.connect(self._drop.Output)
         self._drop.Input.connect(self.Input)
 
     def setupOutputs(self):

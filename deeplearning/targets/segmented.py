@@ -1,16 +1,21 @@
-
+"""
+provides the "exponentially segmented pattern" target proposed by Kondo et.al.
+"""
 import numpy as np
 import vigra
 
-from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.rtype import SubRegion
-from lazyflow.operators import OpReorderAxes
+from deeplearning.tools import Operator, InputSlot, OutputSlot
+from deeplearning.tools import SubRegion
+from deeplearning.tools import OpReorderAxes
 
 from deeplearning.tools import Regression
 from deeplearning.tools import Buildable
 
 
 class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
+    """
+    compute the mean value over exponentially growing windows
+    """
     Input = InputSlot()
     BaselineSize = InputSlot(value=60)
     NumSegments = InputSlot(value=4)
@@ -46,38 +51,34 @@ class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
         self.Valid.meta.dtype = np.uint8
 
     def execute(self, slot, subindex, roi, result):
-        b = self.BaselineSize.value
+        baseline = self.BaselineSize.value
         max_t = self.Output.meta.shape[0]
 
         if slot is self.Valid:
-            max_segment = b*2**(self.Output.meta.shape[1] - 1)
+            max_segment = baseline*2**(self.Output.meta.shape[1] - 1)
             result[:] = 1
             num_invalid = (max_segment - 1) - (max_t - roi.stop[0])
             if num_invalid > 0:
-                index = roi.stop[0] - roi.start[0] - num_invalid
-                index = max(index, 0)
-                result[index:] = 0
+                result[max(roi.stop[0] - roi.start[0] - num_invalid, 0):] = 0
             return
 
-        max_segment = b*2**(roi.stop[1] - 1)
+        max_segment = baseline*2**(roi.stop[1] - 1)
 
-        new_start = (roi.start[0],)
         if roi.stop[0]+max_segment-1 <= max_t:
             new_stop = (roi.stop[0]+max_segment-1,)
             to_fill = 0
         else:
             new_stop = (max_t,)
             to_fill = roi.stop[0]+max_segment-1 - max_t
-        filler = np.zeros((to_fill,))
-        new_roi = SubRegion(self.Input, start=new_start, stop=new_stop)
-        x = self._Input.get(new_roi).wait()
-        x = np.concatenate((x, filler))
-        n_interior = roi.stop[0] - roi.start[0]
+        new_roi = SubRegion(self.Input, start=(roi.start[0],), stop=new_stop)
+        input_ = self._Input.get(new_roi).wait()
+        input_ = np.concatenate((input_, np.zeros((to_fill,))))
 
-        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
-            s = b*2**c
-            f = np.ones((s,), dtype=np.float32)/float(s)
-            result[:, i] = np.convolve(x, f, mode='full')[s-1:n_interior+s-1]
+        for i, j in enumerate(range(roi.start[1], roi.stop[1])):
+            size = baseline*2**j
+            filter_ = np.ones((size,), dtype=np.float32)/float(size)
+            intermediate = np.convolve(input_, filter_, mode='full')
+            result[:, i] = intermediate[size-1:roi.stop[0]-roi.start[0]+size-1]
 
     def propagateDirty(self, slot, subindex, roi):
         self.Output.setDirty(slice(None))

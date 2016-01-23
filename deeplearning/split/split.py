@@ -1,3 +1,6 @@
+"""
+Module contains the class OpTrainTestSplit, which splits data by time.
+"""
 
 import numpy as np
 import vigra
@@ -8,13 +11,27 @@ from lazyflow.rtype import SubRegion
 from deeplearning.tools import Buildable
 
 
-class SplitTypes:
+class SplitTypes(object):  # pylint: disable=R0903,W0232
+    """
+    enum of split types
+
+    (pylint disable is for message "too few public methods")
+    """
     TRAIN = 0
     VALID = 1
     TEST = 2
 
 
-class OpTrainTestSplit(Operator, Buildable):
+class OpTrainTestSplit(Buildable, Operator):
+    """
+    splits by time into train, test and validation set
+
+    all level 1 slots expect their subslots to contain (features, targets)
+
+    t=0                                             t=t_max
+    [            Train          | Validation |    Test    ]
+
+    """
 
     # expects (t, c) inputs
     #   - t indexes time slices
@@ -35,15 +52,24 @@ class OpTrainTestSplit(Operator, Buildable):
     Description = OutputSlot()
     All = OutputSlot(level=1)
 
+    # private
+    _valid_offset = None
+    _test_offset = None
+    _all_train_shape = None
+
     def __init__(self, *args, **kwargs):
         super(OpTrainTestSplit, self).__init__(*args, **kwargs)
         self.All.connect(self.Input)
 
-        def _onSizeChanged(slot, old_size, new_size):
-            for s in (self.Train, self.Valid, self.Test, self.All):
-                s.resize(new_size)
+        # ignore unused arguments -> pylint: disable=W0613
+        def _on_size_changed(changed_slot, old_size, new_size):
+            """
+            resize output to match input's size
+            """
+            for output_slot in (self.Train, self.Valid, self.Test, self.All):
+                output_slot.resize(new_size)
 
-        self.Input.notifyResized(_onSizeChanged)
+        self.Input.notifyResized(_on_size_changed)
 
     def setupOutputs(self):
         test = self.TestPercentage.value
@@ -79,9 +105,10 @@ class OpTrainTestSplit(Operator, Buildable):
 
     def execute(self, slot, subindex, roi, result):
         if slot == self.Description:
-            x = np.arange(roi.start[0], roi.stop[0])
-            valid = (x >= self._valid_offset) & (x < self._test_offset)
-            test = x >= self._test_offset
+            req_indices = np.arange(roi.start[0], roi.stop[0])
+            valid = ((req_indices >= self._valid_offset) &
+                     (req_indices < self._test_offset))
+            test = req_indices >= self._test_offset
             result[:] = 0
             result[valid, ...] = 1
             result[test, ...] = 2
@@ -100,9 +127,9 @@ class OpTrainTestSplit(Operator, Buildable):
         new_stop = (roi.stop[0] + offset,) + tuple(roi.stop[1:])
         new_roi = SubRegion(self.Input, start=new_start, stop=new_stop)
 
-        r = self.Input[subindex[0]].get(new_roi)
-        r.writeInto(result)
-        r.block()
+        request = self.Input[subindex[0]].get(new_roi)
+        request.writeInto(result)
+        request.block()
 
     def propagateDirty(self, slot, subindex, roi):
         # FIXME
@@ -112,8 +139,9 @@ class OpTrainTestSplit(Operator, Buildable):
     def build(cls, config, parent=None, graph=None, workingdir=None):
         op = super(OpTrainTestSplit, cls).build(config,
                                                 parent=parent, graph=graph)
-        op.TestPercentage.setValue(op._test)
-        op.ValidPercentage.setValue(op._valid)
+        # disable false positives
+        op.TestPercentage.setValue(op._test)  # pylint: disable=E1101,W0212
+        op.ValidPercentage.setValue(op._valid)  # pylint: disable=E1101,W0212
         return op
 
     @classmethod

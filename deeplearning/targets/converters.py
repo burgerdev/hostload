@@ -1,21 +1,26 @@
+"""
+Operators that convert targets in some way.
+"""
 
 import numpy as np
 import vigra
 
-from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.rtype import SubRegion
+from deeplearning.tools import Operator, InputSlot, OutputSlot
 
 
 class OpDiscretize(Operator):
+    """
+    discretize an input in the range [0, 1] to values in {0, ..., N-1}
+    """
     Input = InputSlot()
     NumLevels = InputSlot(value=10)
 
     Output = OutputSlot()
 
     def setupOutputs(self):
-        n = self.Input.meta.shape[0]
-        l = self.NumLevels.value
-        self.Output.meta.shape = (n, l)
+        size = self.Input.meta.shape[0]
+        levels = self.NumLevels.value
+        self.Output.meta.shape = (size, levels)
         self.Output.meta.dtype = np.float
 
     def propagateDirty(self, slot, subindex, roi):
@@ -23,27 +28,32 @@ class OpDiscretize(Operator):
         self.Output.setDirty(slice(None))
 
     def execute(self, slot, subindex, roi, result):
-        a = roi.start[0]
-        b = roi.stop[0]
-        l = self.NumLevels.value
-        r = np.linspace(0, 1.0000000001, l+1)
+        t_start = roi.start[0]
+        t_stop = roi.stop[0]
+        levels = self.NumLevels.value
+        # overshoot a bit to include 1.0 in last level
+        boundaries = np.linspace(0, 1.0000000001, levels+1)
 
-        x = self.Input[a:b].wait()
-        x = vigra.taggedView(x, axistags=self.Input.meta.axistags)
-        x = x.withAxes('t')
+        input_ = self.Input[t_start:t_stop].wait()
+        input_ = vigra.taggedView(input_, axistags=self.Input.meta.axistags)
+        input_ = input_.withAxes('t')
 
-        for i, c in enumerate(range(roi.start[1], roi.stop[1])):
-            result[:, i] = (x >= r[c]) & (x < r[c+1])
+        for i, j in enumerate(range(roi.start[1], roi.stop[1])):
+            result[:, i] = ((input_ >= boundaries[j]) &
+                            (input_ < boundaries[j+1]))
 
 
 class OpClassFromOneHot(Operator):
+    """
+    convert (t, c) boolean matrix to (t,) index vector
+    """
     Input = InputSlot()
 
     Output = OutputSlot()
 
     def setupOutputs(self):
-        n = self.Input.meta.shape[0]
-        self.Output.meta.shape = (n,)
+        t_size = self.Input.meta.shape[0]
+        self.Output.meta.shape = (t_size,)
         self.Output.meta.dtype = np.int
 
     def propagateDirty(self, slot, subindex, roi):
@@ -51,8 +61,8 @@ class OpClassFromOneHot(Operator):
         self.Output.setDirty(slice(None))
 
     def execute(self, slot, subindex, roi, result):
-        a = roi.start[0]
-        b = roi.stop[0]
+        t_start = roi.start[0]
+        t_stop = roi.stop[0]
 
-        x = self.Input[a:b, :].wait()
-        result[:] = np.argmax(x, axis=1)
+        input_ = self.Input[t_start:t_stop, :].wait()
+        result[:] = np.argmax(input_, axis=1)
