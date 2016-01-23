@@ -63,6 +63,9 @@ class OpPickleCache(_Cache):
 
 
 class OpHDF5Cache(_Cache):
+    _payload = None
+    _cached = False
+
     def setupOutputs(self):
         super(OpHDF5Cache, self).setupOutputs()
         basename = self.name + ".h5"
