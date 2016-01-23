@@ -10,6 +10,7 @@ from lazyflow.operator import Operator, InputSlot, OutputSlot
 
 from deeplearning.tools import Buildable
 from deeplearning.tools import get_rng
+from deeplearning.tools import build_operator
 
 try:
     from scipy import cluster
@@ -37,6 +38,8 @@ class ModelWeightInitializer(Operator, Buildable):
         last_dim = model.get_input_space().dim
         visited_layers = []
         for init, layer in izip(sub_inits, model.layers):
+            if isinstance(init, dict):
+                init = build_operator(init, parent=self)
             next_dim = layer.get_output_space().dim
             if isinstance(init, OperatorLayerWeightInitializer):
                 forward = OpForwardLayers(visited_layers, parent=self)
