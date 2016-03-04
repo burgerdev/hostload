@@ -7,11 +7,11 @@ import shutil
 import numpy as np
 
 from lazyflow.graph import Graph
-from lazyflow.utility.testing import OpArrayPiperWithAccessCount
+from deeplearning.tools.lazyflow_adapters import OpArrayPiperWithAccessCount
 
 from deeplearning.data.caches import OpPickleCache
 from deeplearning.data.caches import OpHDF5Cache
-from deeplearning.data.wrappers import OpStreamingHdf5Reader
+from deeplearning.tools import OpStreamingHdf5Reader
 
 
 class TestReport(unittest.TestCase):

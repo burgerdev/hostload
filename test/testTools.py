@@ -6,10 +6,10 @@ import numpy as np
 import vigra
 
 from lazyflow.graph import Graph
-from lazyflow.operator import Operator
+from lazyflow.operators import Operator
 from lazyflow.operators import OpArrayPiper
 
-from deeplearning.data.wrappers import OpArrayPiper as OpBuildableArrayPiper
+from deeplearning.tools import OpArrayPiper as OpBuildableArrayPiper
 
 from deeplearning.tools import listifyDict
 from deeplearning.tools import expandDict
@@ -85,6 +85,7 @@ class TestTools(unittest.TestCase):
         for config in configs:
             for kwargs in kws:
                 op = build_operator(config, **kwargs)
+                print(op.__class__)
                 assert isinstance(op, Operator), str(op)
 
     def testSerialization(self):

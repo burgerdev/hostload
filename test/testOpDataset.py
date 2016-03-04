@@ -5,7 +5,7 @@ import numpy as np
 import vigra
 
 from lazyflow.graph import Graph
-from lazyflow.utility.testing import OpArrayPiperWithAccessCount
+from deeplearning.tools.lazyflow_adapters import OpArrayPiperWithAccessCount
 
 from deeplearning.data import OpDataset
 

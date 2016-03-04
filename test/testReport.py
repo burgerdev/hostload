@@ -45,6 +45,8 @@ class TestReport(unittest.TestCase):
         with open(os.path.join(self.wd, "report.json"), "r") as f:
             report = loads(f.read())
 
+        print(report)
+
         assert report["all_true"] == 3
         assert report["test_true"] == 1
         assert report["all_false"] == 1

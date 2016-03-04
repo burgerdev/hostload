@@ -5,7 +5,7 @@ import numpy as np
 import vigra
 
 from lazyflow.graph import Graph
-from lazyflow.operators import OpArrayPiper
+from deeplearning.tools import OpArrayPiper
 
 from deeplearning.features import OpSimpleCombiner
 from deeplearning.features import OpChain

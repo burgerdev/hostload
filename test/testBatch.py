@@ -13,7 +13,7 @@ from deeplearning.data.integrationdatasets import OpShuffledLinspace
 from deeplearning.data.integrationdatasets import OpTarget
 from deeplearning.data.integrationdatasets import OpFeatures
 
-from deeplearning.data.wrappers import OpArrayPiper
+from deeplearning.tools import OpArrayPiper
 
 from deeplearning.report import OpClassificationReport
 from deeplearning.report import OpRegressionReport

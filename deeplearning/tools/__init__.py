@@ -16,3 +16,5 @@ from .lazyflow_adapters import InputSlot
 from .lazyflow_adapters import OutputSlot
 from .lazyflow_adapters import SubRegion
 from .lazyflow_adapters import OpReorderAxes
+from .lazyflow_adapters import OpStreamingHdf5Reader
+from .lazyflow_adapters import OpArrayPiper
