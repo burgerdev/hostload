@@ -10,6 +10,8 @@ except ImportError:
 else:
     plot_available = True
 
+from pylearn2.models import mlp
+
 from deeplearning.workflow import Workflow
 from deeplearning.split import OpTrainTestSplit
 from deeplearning.classifiers import OpMLPTrain
@@ -23,13 +25,20 @@ from deeplearning.features import OpRecent
 from deeplearning.report import OpRegressionReport
 from deeplearning.targets import OpExponentiallySegmentedPattern
 
-from pylearn2.models import mlp
+from deeplearning.tools.extensions import ProgressMonitor
+from deeplearning.tools.extensions import WeightKeeper
+from deeplearning.tools.extensions import MonitorBasedSaveBest
 
 from deeplearning.data.integrationdatasets import OpNoisySine
 from deeplearning.data.integrationdatasets import OpRandomUnitSquare
 from deeplearning.data.integrationdatasets import OpMackeyGlass
 from deeplearning.data.integrationdatasets import OpNormTarget
 from deeplearning.data.integrationdatasets import OpFeatures
+
+
+exts = ({"class": ProgressMonitor, "channel": "train_objective"},
+        {"class": MonitorBasedSaveBest, "channel": "train_objective"},
+        {"class": WeightKeeper},)
 
 
 config = {"class": Workflow,
@@ -42,7 +51,8 @@ config = {"class": Workflow,
           "split": {"class": OpTrainTestSplit},
           "classifierCache": {"class": OpPickleCache},
           "train": {"class": OpMLPTrain,
-                    "max_epochs": 20},
+                    "max_epochs": 20,
+                    "extensions": exts},
           "predict": {"class": OpMLPPredict},
           "predictionCache": {"class": OpHDF5Cache},
           "report": {"class": OpRegressionReport,

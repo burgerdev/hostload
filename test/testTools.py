@@ -98,7 +98,8 @@ class TestTools(unittest.TestCase):
                                         "tuple_in_dict": (1, 2, 3)}],
              "a_tuple": (OpPickleCache, {"class": OpPickleCache}),
              "nested": (1, [2, (3, 4, 5)]),
-             "subdict": {"a": 1}}
+             "subdict": {"a": 1},
+             "a_string": "asdf"}
         s = dumps(d)
         from pprint import pprint
         pprint(d)

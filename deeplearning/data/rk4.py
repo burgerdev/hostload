@@ -3,17 +3,6 @@ Runge-Kutta method and Mackey-Glass series
 """
 
 import numpy as np
-import vigra
-
-try:
-    from matplotlib import pyplot as plt
-except ImportError as err:
-    _MPL_ERR = err
-else:
-    _MPL_ERR = None
-
-from deeplearning.targets import OpExponentiallySegmentedPattern
-from deeplearning.tools import Graph
 
 
 # pylint: disable=R0913
@@ -80,12 +69,16 @@ def default_mackey_glass_series():
     return mackey_glass(.2, -.1, 17, 10, steps=12000, width=.1)
 
 
+# uncomment to visualize Mackey-Glass series
+'''
+import vigra
+from matplotlib import pyplot as plt
+
+from deeplearning.targets import OpExponentiallySegmentedPattern
+from deeplearning.tools import Graph
+
+
 def main():
-    """
-    visualize Mackey-Glass
-    """
-    if _MPL_ERR is not None:
-        raise _MPL_ERR
     plt.figure()
     mg_series = default_mackey_glass_series()
     timesteps = np.arange(len(mg_series))
@@ -111,3 +104,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+'''

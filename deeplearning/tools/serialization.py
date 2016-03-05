@@ -12,24 +12,10 @@ def _encode(obj):
         return _encode_listlike(obj)
     elif isinstance(obj, dict):
         return _encode_dict(obj)
-    elif isinstance(obj, str) or isinstance(obj, unicode):
-        return _encode_string(obj)
     elif isinstance(obj, type):
         return str(obj)
     else:
         return obj
-
-
-def _encode_string(string):
-    match = _class_re.match(string)
-    if match is None:
-        return string
-    else:
-        class_string = match.group(1)
-        itemized = class_string.split(".")
-        class_name = itemized[-1]
-        module = import_module(".".join(itemized[:-1]))
-        return getattr(module, class_name)
 
 
 def _encode_listlike(value):

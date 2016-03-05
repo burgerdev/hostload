@@ -5,6 +5,7 @@ import shutil
 import tempfile
 
 from deeplearning.workflow import Workflow
+from deeplearning.workflow import RegressionWorkflow
 from deeplearning.classifiers import OpStateTrain
 from deeplearning.classifiers import OpStatePredict
 from deeplearning.classifiers import OpSVMTrain
@@ -132,13 +133,14 @@ class TestWorkflow(unittest.TestCase):
         d = tempfile.mkdtemp()
         try:
             c = config.copy()
+            c["class"] = RegressionWorkflow
             c["train"] = {"class": OpMLPTrain,
                           "layer_classes": (mlp.Sigmoid,),
                           "layer_sizes": (5,)}
             c["predict"] = {"class": OpMLPPredict}
             c["target"] = {"class": OpRegTarget}
-            c["report"] = {"class": OpRegressionReport, "levels": 10}
-            w = Workflow.build(c, workingdir=d)
+            del c["report"]
+            w = RegressionWorkflow.build(c, workingdir=d)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 w.run()

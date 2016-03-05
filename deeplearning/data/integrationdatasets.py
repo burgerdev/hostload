@@ -69,17 +69,6 @@ class OpNoisySine(_BaseDataset):
         return data
 
 
-class OpPipedTarget(OpReorderAxes, Regression):
-    """
-    use features as targets
-    """
-    @classmethod
-    def build(cls, *args, **kwargs):
-        op = super(OpPipedTarget, cls).build(*args, **kwargs)
-        op.AxisOrder.setValue('tc')
-        return op
-
-
 class OpShuffledLinspace(_BaseDataset):
     """
     equally spaced data from [0, 1], shuffled
