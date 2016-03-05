@@ -1,94 +1,113 @@
-# -*- coding: utf-8 -*-
 """
-Created on Tue Oct 13 16:39:33 2015
-
-@author: burger
+Runge-Kutta method and Mackey-Glass series
 """
 
 import numpy as np
+import vigra
+
+try:
+    from matplotlib import pyplot as plt
+except ImportError as err:
+    _MPL_ERR = err
+else:
+    _MPL_ERR = None
+
+from deeplearning.targets import OpExponentiallySegmentedPattern
+from deeplearning.tools import Graph
 
 
-def time_delay_runge_kutta_4(f, t_0, y_0, tau, history=None, n=1000, h=1):
+# pylint: disable-msg=R0913
+def time_delay_runge_kutta_4(fun, t_0, y_0, tau, history=None, steps=1000,
+                             width=1):
     """
     apply the classic Runge Kutta method to a time delay differential equation
 
     f: t, y(t), y(t-tau) -> y'(t)
     """
-    h = float(h)
+    width = float(width)
     if not isinstance(y_0, np.ndarray):
         y_0 = np.ones((1,), dtype=np.float)*y_0
-    d = len(y_0)
+    dim = len(y_0)
 
-    hist_steps = np.floor(tau/h)
-    assert tau/h == hist_steps, "tau must be a multiple of h"
+    hist_steps = np.floor(tau/width)
+    assert tau/width == hist_steps, "tau must be a multiple of width"
     hist_steps = int(hist_steps)
 
     if history is None:
-        history = np.zeros((hist_steps, d), dtype=np.float)
+        history = np.zeros((hist_steps, dim), dtype=np.float)
     else:
         assert len(history) == hist_steps
 
-    y = np.zeros((n+1+hist_steps, d), dtype=y_0.dtype)
-    y[:hist_steps] = history
-    y[hist_steps] = y_0
+    fun_eval = np.zeros((steps+1+hist_steps, dim), dtype=y_0.dtype)
+    fun_eval[:hist_steps] = history
+    fun_eval[hist_steps] = y_0
 
-    t_n = t_0
-    y_n = y_0
-    for step in range(n):
-        y_delayed = y[step]
-        k_1 = f(t_n, y_n, y_delayed)
-        k_2 = f(t_n + h/2, y_n + h/2*k_1, y_delayed)
-        k_3 = f(t_n + h/2, y_n + h/2*k_2, y_delayed)
-        k_4 = f(t_n + h, y_n + h*k_3, y_delayed)
-        t_n += h
-        y_n += h*(k_1 + 2*k_2 + 2*k_3 + k_4)/6
-        y[step+1+hist_steps] = y_n
-    return y[hist_steps:]
+    for step in range(steps):
+        k_1 = fun(t_0, y_0, fun_eval[step])
+        k_2 = fun(t_0 + width/2, y_0 + width/2*k_1, fun_eval[step])
+        k_3 = fun(t_0 + width/2, y_0 + width/2*k_2, fun_eval[step])
+        k_4 = fun(t_0 + width, y_0 + width*k_3, fun_eval[step])
+        t_0 += width
+        y_0 += width*(k_1 + 2*k_2 + 2*k_3 + k_4)/6
+        fun_eval[step+1+hist_steps] = y_0
+    return fun_eval[hist_steps:]
 
 
-def mackey_glass(beta, gamma, tau, exponent, n=1000, h=.1):
+# mackey glass does not depend on time explicitly, disable "unused arg"
+# pylint: disable-msg=W0613
+# difference equations just need that many arguments, deal with it
+# pylint: disable-msg=R0913
+def mackey_glass(beta, gamma, tau, exponent, steps=1000, width=.1):
     """
     approximation for Mackey-Glass-Function
 
     definition from http://www.hindawi.com/journals/ddns/2014/193758/
     """
-    def mg_fun(t, y, y_delay):
-        return beta*y_delay/(1+y_delay**exponent) + gamma*y
+    def mg_fun(time, fun, fun_delay):
+        """
+        Mackey-Glass time series depends only on current and delayed value
+        """
+        return beta*fun_delay/(1+fun_delay**exponent) + gamma*fun
 
-    return time_delay_runge_kutta_4(mg_fun, 0, 1.2, tau, n=n, h=h)
-        
+    return time_delay_runge_kutta_4(mg_fun, 0, 1.2, tau, steps=steps,
+                                    width=width)
+
 
 def default_mackey_glass_series():
     """
     get an interesting MG-series for learning
     """
-    return mackey_glass(.2, -.1, 17, 10, n=12000, h=.1)
+    return mackey_glass(.2, -.1, 17, 10, steps=12000, width=.1)
 
 
-if __name__ == "__main__":
-    from matplotlib import pyplot as plt
-    from deeplearning.targets import OpExponentiallySegmentedPattern
-    from lazyflow.graph import Graph
-    import vigra
-
+def main():
+    """
+    visualize Mackey-Glass
+    """
+    if _MPL_ERR is not None:
+        raise _MPL_ERR
     plt.figure()
-    y = default_mackey_glass_series()
-    t = np.arange(len(y))
-    plt.plot(t, y)
+    mg_series = default_mackey_glass_series()
+    timesteps = np.arange(len(mg_series))
+    plt.plot(timesteps, mg_series)
     plt.hold(True)
 
-    y = vigra.taggedView(y, axistags='tc').withAxes('t')
+    mg_series = vigra.taggedView(mg_series, axistags='tc').withAxes('t')
 
     mean = OpExponentiallySegmentedPattern(graph=Graph())
-    mean.Input.setValue(y)
+    mean.Input.setValue(mg_series)
     mean.NumSegments.setValue(1)
 
     legend = ["MackeyGlass"]
     for num in (8, 32, 128):
         mean.BaselineSize.setValue(num)
-        z = mean.Output[:].wait().squeeze()
-        plt.plot(t, z)
+        smoothed = mean.Output[:].wait().squeeze()
+        plt.plot(timesteps, smoothed)
         legend.append("mean over {}".format(num))
 
     plt.legend(legend)
-    plt.show()    
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,14 +1,19 @@
+"""
+datasets used for integration testing
+
+This is just a collection of useful datasets which seemed useful for testing
+purposes. The classes in here should not be relied upon in production mode.
+"""
 
 import numpy as np
 import vigra
 
-from lazyflow.utility.testing import OpArrayPiperWithAccessCount
-from lazyflow.operators import OpReorderAxes
-from lazyflow.operator import OutputSlot
+from deeplearning.tools import OpArrayPiperWithAccessCount
+from deeplearning.tools import OpReorderAxes
+from deeplearning.tools import OutputSlot
 
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
-from deeplearning.tools import Buildable
 
 from .rk4 import default_mackey_glass_series
 
@@ -17,7 +22,14 @@ TAU = 2*np.pi
 MAX_SEED = 4294967295
 
 
-class _BaseDataset(OpArrayPiperWithAccessCount, Buildable):
+# pylint seems to be somewhat broken regarding mixins
+# pylint: disable-msg=C0103
+# pylint: disable-msg=C0111
+
+class _BaseDataset(OpArrayPiperWithAccessCount):
+    """
+    base class for all integration datasets
+    """
     @classmethod
     def build(cls, d, graph=None, parent=None, workingdir=None):
         rng = np.random.RandomState(hash(cls.__name__) % MAX_SEED)
@@ -28,10 +40,18 @@ class _BaseDataset(OpArrayPiperWithAccessCount, Buildable):
         return op
 
     def create_dataset(self, config, rng):
+        """
+        create a dataset with given config and RNG
+
+        overridden in subclasses
+        """
         raise NotImplementedError()
 
 
 class OpNoisySine(_BaseDataset):
+    """
+    a sine curve with added noise
+    """
     @classmethod
     def get_default_config(cls):
         config = _BaseDataset.get_default_config()
@@ -49,39 +69,50 @@ class OpNoisySine(_BaseDataset):
         return data
 
 
-class OpPipedTarget(OpReorderAxes, Regression, Buildable):
+class OpPipedTarget(OpReorderAxes, Regression):
+    """
+    use features as targets
+    """
     @classmethod
-    def build(cls, d, graph=None, parent=None, workingdir=None):
-        op = cls(parent=parent, graph=graph)
+    def build(cls, *args, **kwargs):
+        op = super(OpPipedTarget, cls).build(*args, **kwargs)
         op.AxisOrder.setValue('tc')
         return op
 
 
 class OpShuffledLinspace(_BaseDataset):
+    """
+    equally spaced data from [0, 1], shuffled
+    """
     @classmethod
     def get_default_config(cls):
         config = _BaseDataset.get_default_config()
-        config["shape"] = (10000, 2)
+        config["shape"] = (10000,)
         return config
 
     def create_dataset(self, config, rng):
         data = np.linspace(0, 1, self._shape[0])
         data = data[rng.permutation(len(data))]
         data = vigra.taggedView(data, axistags='t')
+        data = data.astype(np.float32)
         return data
 
 
-class OpFeatures(OpReorderAxes, Buildable):
+class OpFeatures(OpReorderAxes):
+    """
+    pass on features with added Valid slot
+    """
     Valid = OutputSlot()
 
-    @staticmethod
-    def build(d, graph=None, parent=None, workingdir=None):
-        op = OpFeatures(parent=parent, graph=graph)
+    @classmethod
+    def build(cls, *args, **kwargs):
+        op = super(OpFeatures, cls).build(*args, **kwargs)
         op.AxisOrder.setValue('tc')
         return op
 
     def setupOutputs(self):
         super(OpFeatures, self).setupOutputs()
+        # self.Output.meta.dtype = self.Input.meta.dtype
         self.Valid.meta.shape = self.Output.meta.shape[:1]
         self.Valid.meta.axistags = vigra.defaultAxistags('t')
         self.Valid.meta.dtype = np.uint8
@@ -93,17 +124,16 @@ class OpFeatures(OpReorderAxes, Buildable):
             result[:] = 1
 
 
-class _OpTarget(OpArrayPiperWithAccessCount, Buildable):
+class OpTarget(Classification, OpArrayPiperWithAccessCount):
+    """
+    basic classification target
+    """
     Valid = OutputSlot()
-    @classmethod
-    def build(cls, d, graph=None, parent=None, workingdir=None):
-        op = cls(parent=parent, graph=graph)
-        return op
 
     def setupOutputs(self):
         assert len(self.Input.meta.shape) == 1
         self.Output.meta.shape = (self.Input.meta.shape[0], 2)
-        self.Output.meta.dtype = np.float
+        self.Output.meta.dtype = np.float32
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
         self.Valid.meta.shape = self.Output.meta.shape[:1]
         self.Valid.meta.axistags = vigra.defaultAxistags('t')
@@ -112,28 +142,22 @@ class _OpTarget(OpArrayPiperWithAccessCount, Buildable):
     def execute(self, slot, subindex, roi, result):
         if slot is not self.Valid:
             data = self.Input[roi.start[0]:roi.stop[0]].wait()
-            for i, c in enumerate(range(roi.start[1], roi.stop[1])):
-                result[:, i] = np.where(data > .499, c, 1-c)
+            for i, channel in enumerate(range(roi.start[1], roi.stop[1])):
+                result[:, i] = np.where(data > .499, channel, 1-channel)
         else:
             result[:] = 1
 
 
-class OpTarget(_OpTarget, Classification):
-    pass
-
-
-class OpRegTarget(OpArrayPiperWithAccessCount, Regression, Buildable):
+class OpRegTarget(Regression, OpArrayPiperWithAccessCount):
+    """
+    basic regression target
+    """
     Valid = OutputSlot()
-
-    @classmethod
-    def build(cls, d, graph=None, parent=None, workingdir=None):
-        op = cls(parent=parent, graph=graph)
-        return op
 
     def setupOutputs(self):
         # assert len(self.Input.meta.shape) == 1
         self.Output.meta.shape = (self.Input.meta.shape[0], 1)
-        self.Output.meta.dtype = np.float
+        self.Output.meta.dtype = np.float32
         self.Output.meta.axistags = vigra.defaultAxistags('tc')
         self.Valid.meta.shape = self.Output.meta.shape[:1]
         self.Valid.meta.axistags = vigra.defaultAxistags('t')
@@ -148,6 +172,9 @@ class OpRegTarget(OpArrayPiperWithAccessCount, Regression, Buildable):
 
 
 class OpRandomUnitSquare(_BaseDataset):
+    """
+    random data from the (2D) unit square
+    """
     @classmethod
     def get_default_config(cls):
         config = _BaseDataset.get_default_config()
@@ -161,6 +188,11 @@ class OpRandomUnitSquare(_BaseDataset):
 
 
 class OpXORTarget(OpRegTarget):
+    """
+    The result of (kinda) XORing channel 0 and 1
+
+      xor_cont(a, b) := 1 - (1 - a - b)^2
+    """
     def execute(self, slot, subindex, roi, result):
         if slot is self.Valid:
             result[:] = 1
@@ -170,6 +202,9 @@ class OpXORTarget(OpRegTarget):
 
 
 class OpNormTarget(OpRegTarget):
+    """
+    euclidean norm of features
+    """
     def execute(self, slot, subindex, roi, result):
         if slot is self.Valid:
             result[:] = 1

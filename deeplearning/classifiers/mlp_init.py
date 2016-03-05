@@ -375,8 +375,6 @@ class OptimalInitializer(ModelWeightInitializer):
         target = self.Target[...].wait()
         concat = np.concatenate((data, target), axis=1)
         centroids, _ = cluster.vq.kmeans(concat, n_centroids)
-        print(centroids)
-        #assert False
         return centroids
 
     @classmethod

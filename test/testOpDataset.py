@@ -52,6 +52,7 @@ class TestOpDataset(unittest.TestCase):
         i = self.op.iterator(mode=None, num_batches=k)
         batches = [b for b in i]
         np.testing.assert_equal(len(batches), k)
+        assert all([b.dtype == np.float32 for b in batches])
 
         i = self.op.iterator(rng=0, mode="no_real_mode")
         batches = [b for b in i]
@@ -69,5 +70,6 @@ class TestOpDataset(unittest.TestCase):
         n = i.next()
         assert isinstance(n, tuple)
         np.testing.assert_equal(len(n), 1)
+        assert n[0].dtype == np.float32
 
         assert not i.stochastic

@@ -18,7 +18,7 @@ from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
 from deeplearning.classifiers.mlp_init import PCAWeightInitializer
 from deeplearning.data import OpPickleCache
 from deeplearning.data import OpHDF5Cache
-from deeplearning.data import OpStreamingHdf5Reader
+from deeplearning.tools import OpStreamingHdf5Reader
 from deeplearning.features import OpRecent
 from deeplearning.report import OpRegressionReport
 from deeplearning.targets import OpExponentiallySegmentedPattern
