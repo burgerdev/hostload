@@ -16,6 +16,8 @@ from deeplearning.workflow import Workflow
 LOGGER = logging.getLogger(__name__)
 
 
+# we want to catch all exceptions, don't complain
+# pylint: disable-msg=W0703
 def run_batch(config, workingdir, continue_on_failure=True):
     """
     run a batch configuration inspecified directory
@@ -26,8 +28,7 @@ def run_batch(config, workingdir, continue_on_failure=True):
             first run, to 2 in the second run
     * the directory has to exist
     """
-    extended_config = listifyDict(config)
-    configs_to_run = list(expandDict(extended_config))
+    configs_to_run = list(expandDict(listifyDict(config)))
 
     num_configs = len(configs_to_run)
     digits = 1
@@ -40,23 +41,22 @@ def run_batch(config, workingdir, continue_on_failure=True):
 
     for index, config in enumerate(configs_to_run):
         dirname = dir_template.format(index)
-        full_path = os.path.join(workingdir, dirname)
-        config["workingdir"] = full_path
+        config["workingdir"] = os.path.join(workingdir, dirname)
         try:
             workflow = Workflow.build(config)
             workflow.run()
         except IncompatibleTargets:
             LOGGER.info("IncompatibleTargets in run %s", dirname)
-            err_file_name = os.path.join(full_path, "SKIPPED")
+            err_file_name = os.path.join(config["workingdir"], "SKIPPED")
             err_msg = "IncompatibleTargets raised"
         except Exception as err:
             LOGGER.error("Error in run %s:\n\t%s", dirname, str(err))
-            err_file_name = os.path.join(full_path, "FAILURE")
+            err_file_name = os.path.join(config["workingdir"], "FAILURE")
             err_msg = traceback.format_exc()
             if not continue_on_failure:
                 raise
         else:
-            err_file_name = os.path.join(full_path, "SUCCESS")
+            err_file_name = os.path.join(config["workingdir"], "SUCCESS")
             err_msg = ""
 
         with open(err_file_name, "w") as err_file:
