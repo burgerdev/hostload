@@ -154,7 +154,10 @@ class OpDeepTrain(OpTrain, Classification):
             layer.set_param_values(keep.best_model.get_param_values())
             LOGGER.info("Restoring model with cost %f", keep.best_cost)
 
+            # redefinition of transformed_dataset is ok
+            # pylint: disable=R0204
             transformed_dataset = get_transform(self._layers[:i+1])
+            # pylint: enable=R0204
 
     def _train_all(self):
         """

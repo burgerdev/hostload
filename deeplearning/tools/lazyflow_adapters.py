@@ -21,6 +21,9 @@ from lazyflow.operators import OpArrayPiper as _OpPiper
 LOGGER = logging.getLogger(__name__)
 
 
+# we are just fixing lazyflow, ignore pylint errors for this mixin
+# pylint: disable=R0201,R0903,W0613,W0223
+
 class _SetInSlotMixin(object):
     """
     we don't use setInSlot in this package
@@ -31,6 +34,9 @@ class _SetInSlotMixin(object):
 
 class Operator(_SetInSlotMixin, Buildable, _Operator):
     pass
+
+
+# pylint: enable=R0201,R0903,W0613,W0223
 
 
 class OpStreamingHdf5Reader(_SetInSlotMixin, Buildable, _OpHdf5):
@@ -84,3 +90,8 @@ class OpArrayPiperWithAccessCount(OpArrayPiper):
     def clear(self):
         self.requests = []
         self.accessCount = 0
+
+
+InputSlot = InputSlot
+Graph = Graph
+SubRegion = SubRegion

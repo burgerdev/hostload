@@ -6,13 +6,11 @@ This module contains just one feature operator, OpRecent.
 import numpy as np
 import vigra
 
-from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.rtype import SubRegion
-
-from deeplearning.tools import Buildable
+from deeplearning.tools import Operator, InputSlot, OutputSlot
+from deeplearning.tools import SubRegion
 
 
-class OpRecent(Operator, Buildable):
+class OpRecent(Operator):
     """
     Provides the `window_size` most recent input values as feature channels.
 
@@ -41,16 +39,33 @@ class OpRecent(Operator, Buildable):
         self.Valid.dtype = np.uint8
 
     def execute(self, slot, subindex, roi, result):
-        window = self.WindowSize.value
-
         if slot is self.Valid:
-            result[:] = 1
-            first_valid_index = window - 1
-            num_invalid = first_valid_index - roi.start[0]
-            if num_invalid > 0:
-                result[:num_invalid] = 0
-            return
+            return self._execute_valid(roi, result)
+        elif slot is self.Output:
+            return self._execute_output(roi, result)
+        else:
+            raise ValueError("unknown slot {}".format(slot))
 
+    def propagateDirty(self, slot, subindex, roi):
+        window = self.WindowSize.value
+        max_size = self.Output.meta.shape[0]
+        max_size = min(roi.stop[0] + max_size - 1, max_size)
+        new_start = (roi.start[0], 0)
+        new_stop = (max_size, window)
+        new_roi = SubRegion(self.Output, start=new_start, stop=new_stop)
+        self.Output.setDirty(new_roi)
+
+    def _execute_valid(self, roi, result):
+        window = self.WindowSize.value
+        result[:] = 1
+        first_valid_index = window - 1
+        num_invalid = first_valid_index - roi.start[0]
+        if num_invalid > 0:
+            result[:num_invalid] = 0
+        return result
+
+    def _execute_output(self, roi, result):
+        window = self.WindowSize.value
         padding_size = max(window - 1 - roi.start[0], 0)
 
         rem = tuple(self.Input.meta.shape[1:])
@@ -69,12 +84,4 @@ class OpRecent(Operator, Buildable):
 
         for i, j in enumerate(range(roi.start[1], roi.stop[1])):
             result[:, i] = input_[window-j-1:window-j-1+n_examples]
-
-    def propagateDirty(self, slot, subindex, roi):
-        window = self.WindowSize.value
-        max_size = self.Output.meta.shape[0]
-        max_size = min(roi.stop[0] + max_size - 1, max_size)
-        new_start = (roi.start[0], 0)
-        new_stop = (max_size, window)
-        new_roi = SubRegion(self.Output, start=new_start, stop=new_stop)
-        self.Output.setDirty(new_roi)
+        return result

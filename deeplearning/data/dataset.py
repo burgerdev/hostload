@@ -20,7 +20,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 # docstring is applied by @wraps
-# pylint: disable-msg=C0111
+# pylint: disable=C0111
 def _assert_input_ready(method):
     """
     wrapper for OpDataset methods to prevent usage before input is ready
@@ -49,7 +49,7 @@ def _warn_if_unwise(method):
     return wrapped
 
 
-# pylint: enable-msg=C0111
+# pylint: enable=C0111
 class OpDataset(Operator, Dataset):
     """
     converts an input slot to a pylearn2 dataset
@@ -89,7 +89,7 @@ class OpDataset(Operator, Dataset):
         return self._num_examples
 
     # we need all those arguments
-    # pylint: disable-msg=R0913
+    # pylint: disable=R0913
     @_assert_input_ready
     def iterator(self, mode=None, batch_size=None, num_batches=None, rng=None,
                  data_specs=None, return_tuple=False):
@@ -222,7 +222,7 @@ class OpDataset(Operator, Dataset):
 
 
 # we don't want to call super().__init__!
-# pylint: disable-msg=W0231
+# pylint: disable=W0231
 class _Iterator(SubsetIterator):
     """
     wrapper around a python iterator over batches

@@ -33,10 +33,11 @@ def _encode_string(string):
 
 
 def _encode_listlike(value):
+    list_ = [_encode(v) for v in value]
     if isinstance(value, tuple):
-        value = tuple(map(_encode, value)) + ("t",)
+        value = tuple(list_) + ("t",)
     elif isinstance(value, list):
-        value = map(_encode, value) + ["l"]
+        value = list_ + ["l"]
     return value
 
 
@@ -74,20 +75,20 @@ def _decode_string(string):
 
 
 def _decode_listlike(value):
-        value = map(_decode, value)
+    value = [_decode(v) for v in value]
 
-        if len(value) == 0:
-            pass
-        elif not (isinstance(value[-1], str) or
-                  isinstance(value[-1], unicode)):
-            pass
-        elif value[-1] not in "tl":
-            pass
-        elif value[-1] == "t":
-            value = tuple(value[:-1])
-        elif value[-1] == "l":
-            value = value[:-1]
-        return value
+    if len(value) == 0:
+        pass
+    elif not (isinstance(value[-1], str) or
+              isinstance(value[-1], unicode)):
+        pass
+    elif value[-1] not in "tl":
+        pass
+    elif value[-1] == "t":
+        value = tuple(value[:-1])
+    elif value[-1] == "l":
+        value = value[:-1]
+    return value
 
 
 def _decode_dict(dict_from):

@@ -21,8 +21,11 @@ class SignalExtension(BuildableTrainExtension):
             raise StopIteration()
 
     @classmethod
-    def _handler(cls, signum, frame):
-        cls.signaled = True
+    def handler(cls, signum, _):
+        if signum in (signal.SIGHUP, signal.SIGTERM):
+            cls.signaled = True
+        else:
+            raise RuntimeError("caught signal {}".format(signum))
 
 
-signal.signal(signal.SIGHUP, SignalExtension._handler)
+signal.signal(signal.SIGHUP, SignalExtension.handler)

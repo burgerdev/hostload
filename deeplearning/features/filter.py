@@ -30,7 +30,7 @@ class OpMean(OpFilter):
     """
     mean value over window size
 
-    m_k = \frac{1}{w}\sum_{i=1}^w x_{k-i+1}
+    m_k = \\frac{1}{w}\\sum_{i=1}^w x_{k-i+1}
     """
     @classmethod
     def get_filter(cls, window):
@@ -41,7 +41,7 @@ class OpLinearWeightedMean(OpFilter):
     """
     linear weighted mean over window size
 
-    m_k = \frac{2}{w(w+1)}\sum_{i=1}^w \frac{x_{k-i+1}}{i}
+    m_k = \\frac{2}{w(w+1)}\\sum_{i=1}^w \\frac{x_{k-i+1}}{i}
 
     """
     @classmethod
@@ -56,7 +56,7 @@ class OpExponentialFilter(OpFilter):
     """
     exponential filter
 
-    parameter \lambda is chosen such that 99% of weight is inside filter
+    parameter \\lambda is chosen such that 99% of weight is inside filter
     """
     @classmethod
     def get_filter(cls, window):

@@ -15,15 +15,26 @@ class BuildableTrainExtension(TrainExtension, Buildable):
         """
         build an instance of this class with given configuration dict
         """
-        obj = super(BuildableTrainExtension, cls).build(config, parent=parent,
-                                                        graph=graph)
+        config_copy = config.copy()
+        if "wd" not in config_copy:
+            config_copy["wd"] = workingdir
+        obj = super(BuildableTrainExtension, cls).build(config_copy)
 
-        obj._wd = workingdir
         return obj
 
-    def __init__(self, parent=None, graph=None, workingdir=None):
-        self._wd = workingdir
+    def __init__(self, **kwargs):
+        if "workingdir" in kwargs:
+            self._wd = kwargs["workingdir"]
         super(BuildableTrainExtension, self).__init__()
+
+    @classmethod
+    def get_default_config(cls):
+        """
+        override to provide your own default configuration
+        """
+        conf = super(BuildableTrainExtension, cls).get_default_config()
+        conf["wd"] = None
+        return conf
 
 
 class PersistentTrainExtension(BuildableTrainExtension):
@@ -38,6 +49,7 @@ class WeightKeeper(PersistentTrainExtension):
     """
     keeps track of the model's weights at each monitor step
     """
+    _weights = []
 
     def on_monitor(self, model, dataset, algorithm):
         """
@@ -64,6 +76,8 @@ class ProgressMonitor(PersistentTrainExtension):
     """
     keeps track of the model's weights at each monitor step
     """
+
+    _progress = np.NaN
 
     @classmethod
     def get_default_config(cls):
@@ -95,6 +109,9 @@ class MonitorBasedSaveBest(BuildableTrainExtension):
     similar to pylearn2's MonitorBasedSaveBest, but avoids memory hogging
     (see https://github.com/lisa-lab/pylearn2/issues/1567)
     """
+
+    best_cost = np.inf
+    best_params = None
 
     @classmethod
     def get_default_config(cls):
@@ -142,6 +159,8 @@ else:
         """
         uses the pympler module for debugging memory leaks
         """
+        _new_arrays = []
+        _id_set = set()
 
         def on_monitor(self, model, dataset, algorithm):
             """
@@ -163,4 +182,4 @@ else:
         def _update_arrays(self):
             self._new_arrays = [a for a in get_arrays()
                                 if id(a) not in self._id_set]
-            self._id_set.update(set(map(id, self._new_arrays)))
+            self._id_set.update(set([id(a) for a in self._new_arrays]))

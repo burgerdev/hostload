@@ -4,15 +4,17 @@ import numpy as np
 from sklearn.svm import SVC
 from sklearn.svm import SVR
 
-from lazyflow.rtype import SubRegion
 
 from .abcs import OpTrain
 from .abcs import OpPredict
 
+from deeplearning.tools import SubRegion
 from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 
 
+# Not a problem that OpSVMTrain has many ancestors
+# pylint: disable=R0901
 class OpSVMTrain(OpTrain, Regression, Classification):
     def execute(self, slot, subindex, roi, result):
         assert len(self.Train) == 2, "need data and target"
@@ -28,6 +30,8 @@ class OpSVMTrain(OpTrain, Regression, Classification):
         valid = self.Valid[1][...].wait().view(np.ndarray)
         y = np.concatenate((train, valid), axis=0)
 
+        # redefinition of model in else-clause is ok
+        # pylint: disable=R0204
         if len(y.shape) == 1 or y.shape[1] == 1:
             # use regression
             y = y.squeeze()
@@ -39,6 +43,7 @@ class OpSVMTrain(OpTrain, Regression, Classification):
 
         model.fit(X, y)
         result[0] = model
+        # pylint: enable=R0204
 
 
 class OpSVMPredict(OpPredict, Regression, Classification):

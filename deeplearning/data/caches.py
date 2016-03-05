@@ -77,7 +77,7 @@ class OpPickleCache(_Cache):
 
     # we don't want to quit the program if caching failed, otherwise data from
     # days of training could be lost
-    # pylint: disable-msg=W0703
+    # pylint: disable=W0703
     def cache(self, result):
         """
         dump object to pickle file

@@ -25,7 +25,7 @@ def listifyDict(d):
     if not isinstance(d, dict):
         return d
 
-    def apply(k):
+    def listify_sub(k):
         v = d[k]
         if isinstance(v, dict):
             return [listifyDict(v)]
@@ -35,7 +35,7 @@ def listifyDict(d):
             return [v]
 
     keys = d.keys()
-    values = map(apply, keys)
+    values = [listify_sub(k) for k in keys]
     return dict(zip(keys, values))
 
 

@@ -11,19 +11,26 @@ from lazyflow.operator import InputSlot
 from .abcs import OpTrain
 from .abcs import OpPredict
 
-from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 
 
 class OpPolynomialTrain(OpTrain, Regression):
-    Degree = InputSlot()
+    Degree = InputSlot(optional=True)
+    __degree = 3
+
+    def setupOutputs(self):
+        super(OpPolynomialTrain, self).setupOutputs()
+        if self.Degree.ready():
+            self.__degree = self.Degree.value
+        else:
+            # single underscore is from config, double is used later on
+            self.__degree = self._degree
 
     @classmethod
-    def build(cls, d, parent=None, graph=None, workingdir=None):
-            op = cls(parent=parent, graph=graph)
-            my_d = {"degree": 3}
-            my_d.update(d)
-            op.Degree.setValue(my_d["degree"])
+    def get_default_config(cls):
+        conf = super(OpPolynomialTrain, cls).get_default_config()
+        conf["degree"] = cls.__degree
+        return conf
 
     def execute(self, slot, subindex, roi, result):
         assert len(self.Train) == 2, "need data and target"
@@ -33,37 +40,36 @@ class OpPolynomialTrain(OpTrain, Regression):
 
         train = self.Train[0][...].wait().view(np.ndarray)
         valid = self.Valid[0][...].wait().view(np.ndarray)
-        X = np.concatenate((train, valid), axis=0)
+        features = np.concatenate((train, valid), axis=0)
 
         train = self.Train[1][...].wait().view(np.ndarray)
         valid = self.Valid[1][...].wait().view(np.ndarray)
-        y = np.concatenate((train, valid), axis=0)
-        y = y.squeeze()
+        target = np.concatenate((train, valid), axis=0)
+        target = target.squeeze()
 
-        degree = self.Degree.value
-
-        poly = PolynomialFeatures(degree=degree)
+        poly = PolynomialFeatures(degree=self.__degree)
         # polynomial features contain column of 1's, no need for fit_intercept
         linear = LinearRegression(fit_intercept=False)
         model = Pipeline([("poly", poly), ("linear", linear)])
 
-        model.fit(X, y)
+        model.fit(features, target)
         result[0] = model
 
 
 class OpPolynomialPredict(OpPredict, Regression):
     def execute(self, slot, subindex, roi, result):
-        a = roi.start[0]
-        b = roi.stop[0]
-        c = 0
-        d = self.Input.meta.shape[1]
+        start_t = roi.start[0]
+        stop_t = roi.stop[0]
+        start_c = 0
+        stop_c = self.Input.meta.shape[1]
 
-        new_roi = SubRegion(self.Input, start=(a, c), stop=(b, d))
-        X = self.Input.get(new_roi).wait()
+        new_roi = SubRegion(self.Input, start=(start_t, start_c),
+                            stop=(stop_t, stop_c))
+        features = self.Input.get(new_roi).wait()
 
         model = self.Classifier[...].wait()[0]
 
         if not isinstance(model, Pipeline):
             raise ValueError("unsupported model '{}'".format(type(model)))
 
-        result[:, 0] = model.predict(X)
+        result[:, 0] = model.predict(features)

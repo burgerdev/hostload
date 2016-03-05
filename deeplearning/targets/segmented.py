@@ -51,16 +51,36 @@ class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
         self.Valid.meta.dtype = np.uint8
 
     def execute(self, slot, subindex, roi, result):
+        if slot is self.Valid:
+            return self._execute_valid(roi, result)
+        elif slot is self.Output:
+            return self._execute_output(roi, result)
+        else:
+            raise ValueError("unknown slot {}".format(slot))
+
+    def propagateDirty(self, slot, subindex, roi):
+        self.Output.setDirty(slice(None))
+
+    def _execute_valid(self, roi, result):
+        """
+        for which time steps do we have enough future values?
+        """
         baseline = self.BaselineSize.value
         max_t = self.Output.meta.shape[0]
 
-        if slot is self.Valid:
-            max_segment = baseline*2**(self.Output.meta.shape[1] - 1)
-            result[:] = 1
-            num_invalid = (max_segment - 1) - (max_t - roi.stop[0])
-            if num_invalid > 0:
-                result[max(roi.stop[0] - roi.start[0] - num_invalid, 0):] = 0
-            return
+        max_segment = baseline*2**(self.Output.meta.shape[1] - 1)
+        result[:] = 1
+        num_invalid = (max_segment - 1) - (max_t - roi.stop[0])
+        if num_invalid > 0:
+            result[max(roi.stop[0] - roi.start[0] - num_invalid, 0):] = 0
+        return result
+
+    def _execute_output(self, roi, result):
+        """
+        compute feature
+        """
+        baseline = self.BaselineSize.value
+        max_t = self.Output.meta.shape[0]
 
         max_segment = baseline*2**(roi.stop[1] - 1)
 
@@ -79,6 +99,4 @@ class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):
             filter_ = np.ones((size,), dtype=np.float32)/float(size)
             intermediate = np.convolve(input_, filter_, mode='full')
             result[:, i] = intermediate[size-1:roi.stop[0]-roi.start[0]+size-1]
-
-    def propagateDirty(self, slot, subindex, roi):
-        self.Output.setDirty(slice(None))
+        return result

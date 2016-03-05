@@ -9,16 +9,14 @@ the next operator.
 import numpy as np
 import vigra
 
-from lazyflow.operator import Operator
-from lazyflow.operator import InputSlot
-from lazyflow.operator import OutputSlot
 from lazyflow.operators.generic import OpMultiArrayStacker
 
-from deeplearning.tools import Buildable
+from deeplearning.tools import Operator, InputSlot, OutputSlot
+
 from deeplearning.tools import build_operator
 
 
-class OpSimpleCombiner(Operator, Buildable):
+class OpSimpleCombiner(Operator):
     """
     combines a list of feature operators into one (horizontally)
 
@@ -81,7 +79,7 @@ class OpSimpleCombiner(Operator, Buildable):
         pass
 
 
-class OpChain(Operator, Buildable):
+class OpChain(Operator):
     """
     chains a list of feature operators (vertically)
 

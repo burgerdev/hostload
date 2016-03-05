@@ -22,9 +22,12 @@ class Buildable(object):
 
         default_config.update(config)
 
+        if workingdir is not None and "workingdir" in default_config:
+            default_config["workingdir"] = workingdir
+
         operator = cls(parent=parent, graph=graph)
 
-        operator._set_attributes(default_config)
+        operator.set_build_attributes(default_config)
 
         return operator
 
@@ -35,7 +38,7 @@ class Buildable(object):
         """
         return {"class": cls}
 
-    def _set_attributes(self, config):
+    def set_build_attributes(self, config):
         """
         dynamically set attributes from config dict
 
@@ -67,8 +70,7 @@ def build_operator(data, **kwargs):
         cls = data["class"]
         if not issubclass(cls, Buildable):
             assert hasattr(cls, "build"), "can't build class {}".format(cls)
-            LOGGER.warn(
-                "{} is not Buildable but has a build method".format(cls))
+            LOGGER.warn("%s is not Buildable but has a build method", str(cls))
         return cls.build(data, **kwargs)
     else:
         if "workingdir" in kwargs:

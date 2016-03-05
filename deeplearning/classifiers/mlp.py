@@ -34,7 +34,11 @@ from pylearn2 import train
 logger = logging.getLogger(__name__)
 
 
+# OpMLPTrain has many parents, but you don't need to know that to use it
+# pylint: disable=R0901
 class OpMLPTrain(OpTrain, Classification, Regression):
+    __num_dimensions = 2
+
     @classmethod
     def get_default_config(cls):
         config = OpTrain.get_default_config()
@@ -87,7 +91,7 @@ class OpMLPTrain(OpTrain, Classification, Regression):
 
         override for e.g. CNN subclass
         """
-        return 2
+        return self.__num_dimensions
 
     def _reconfigure(self):
         #TODO perfrom checks if config is still valid
@@ -115,6 +119,9 @@ class OpMLPTrain(OpTrain, Classification, Regression):
             layers.append(layer)
         n_out = self.Train[1].meta.shape[1]
 
+        # in both branches, we are assigning a Layer to output, so it's not a
+        # redefinition => stop complaining, pylint
+        # pylint: disable=R0204
         if n_out == 1:
             # set up for regression
             output = mlp.Linear(n_out, 'output', irange=.1)
@@ -123,6 +130,8 @@ class OpMLPTrain(OpTrain, Classification, Regression):
             # set up for classification
             output = mlp.Softmax(n_out, 'output', irange=.1)
             self._regression = False
+
+        # pylint: enable=R0204
         layers.append(output)
         self._nn = mlp.MLP(layers=layers, nvis=nvis)
 

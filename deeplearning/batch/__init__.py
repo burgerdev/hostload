@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 # we want to catch all exceptions, don't complain
-# pylint: disable-msg=W0703
+# pylint: disable=W0703
 def run_batch(config, workingdir, continue_on_failure=True):
     """
     run a batch configuration inspecified directory

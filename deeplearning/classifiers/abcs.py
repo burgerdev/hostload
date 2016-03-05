@@ -4,8 +4,8 @@ base classes that define training and prediction operator interfaces
 
 import numpy as np
 
-from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.rtype import SubRegion
+from deeplearning.tools import Operator, InputSlot, OutputSlot
+from deeplearning.tools import SubRegion
 
 from deeplearning.tools import Buildable
 
@@ -39,9 +39,6 @@ class OpTrain(Operator, Buildable):
         self.Classifier.setDirty(slice(None))
 
     def execute(self, slot, subindex, roi, result):
-        raise NotImplementedError()
-
-    def setInSlot(self, slot, subindex, roi, value):
         raise NotImplementedError()
 
 
@@ -85,7 +82,4 @@ class OpPredict(Operator, Buildable):
         # Target.meta.shape
 
     def execute(self, slot, subindex, roi, result):
-        raise NotImplementedError()
-
-    def setInSlot(self, slot, subindex, roi, value):
         raise NotImplementedError()

@@ -25,16 +25,19 @@ class Workflow(Buildable):
     Target = None
 
     @classmethod
-    def build(cls, config, workingdir=None):
-        d = cls.get_default_config()
-        d.update(config)
-        assert "class" in d and issubclass(d["class"], Workflow)
-        del d["class"]
+    def build(cls, outer_config, parent=None, graph=None, workingdir=None):
+        assert parent is None
+        assert graph is None
+
+        config = cls.get_default_config()
+        config.update(outer_config)
+        assert "class" in config and issubclass(config["class"], Workflow)
+        del config["class"]
 
         if workingdir is None:
-            if "workingdir" in d:
-                workingdir = d["workingdir"]
-                del d["workingdir"]
+            if "workingdir" in config:
+                workingdir = config["workingdir"]
+                del config["workingdir"]
                 try:
                     os.mkdir(workingdir)
                 except OSError as err:
@@ -46,18 +49,29 @@ class Workflow(Buildable):
             else:
                 workingdir = tempfile.mkdtemp(prefix="deeplearning_")
 
-        w = cls(workingdir=workingdir)
+        w = cls(workingdir=workingdir, config=config)
 
-        kwargs = dict(graph=w._graph)
+        return w
 
-        for key in d:
+    def __init__(self, workingdir=None, config=None):
+        self._config = None
+        self._graph = Graph()
+        self._workingdir = workingdir
+        self._start_time = None
+
+        kwargs = dict(graph=self._graph)
+
+        if config is None:
+            return
+
+        for key in config:
             assert isinstance(key, str)
             attr = "_" + key
-            assert not hasattr(w, attr)
+            assert not hasattr(self, attr)
 
             if key == "preprocessing":
                 value = [build_operator(subdict, **kwargs)
-                         for subdict in d[key]]
+                         for subdict in config[key]]
             else:
                 subdir = os.path.join(workingdir, key)
                 try:
@@ -70,20 +84,13 @@ class Workflow(Buildable):
                         raise
 
                 kwargs["workingdir"] = subdir
-                value = build_operator(d[key], **kwargs)
+                value = build_operator(config[key], **kwargs)
 
-            setattr(w, attr, value)
+            setattr(self, attr, value)
 
-        w._initialize()
+        self._initialize()
 
-        w._config = d
-
-        return w
-
-    def __init__(self, workingdir=None):
-        self._config = None
-        self._graph = Graph()
-        self._workingdir = workingdir
+        self._config = config
 
     def run(self):
         self._pre_run()

@@ -22,7 +22,7 @@ def traverse(obj, ignore_list=None, start=False):
     cancelled = False
     if not start:
         refs = gc.get_referrers(obj)
-        refs = filter(lambda x: x not in ignore_list and not isframe(x), refs)
+        refs = [r for r in refs if r not in ignore_list and not isframe(r)]
     else:
         refs = obj
     n = len(refs)

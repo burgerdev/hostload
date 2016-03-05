@@ -10,18 +10,17 @@ no information from the future leaks into the current feature.
 import numpy as np
 import vigra
 
-from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.rtype import SubRegion
-
-from deeplearning.tools import Buildable
+from deeplearning.tools import Operator, InputSlot, OutputSlot
+from deeplearning.tools import SubRegion
 
 
-class OpWindow(Operator, Buildable):
+class OpWindow(Operator):
     """
     base class for windowed features
 
-    The feature is computed by applying the child class' `apply_window_function`
-    on a window of the recent `WindowSize` observations.
+    The feature is computed by applying the child class'
+    `apply_window_function` on a window of the recent `WindowSize`
+    observations.
     """
     Input = InputSlot()
     WindowSize = InputSlot()

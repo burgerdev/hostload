@@ -4,8 +4,8 @@ multi-purpose operators
 
 import numpy as np
 
-from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.operators import OpArrayPiper
+from .lazyflow_adapters import Operator, InputSlot, OutputSlot
+from .lazyflow_adapters import OpArrayPiper
 
 from .abcs import Buildable
 

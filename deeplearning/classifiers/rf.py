@@ -10,12 +10,8 @@ from lazyflow.classifiers import VigraRfLazyflowClassifierFactory
 from lazyflow.classifiers import VigraRfLazyflowClassifier
 from lazyflow.rtype import SubRegion
 
-class OpRFTrain(OpTrain, Classification):
-    @classmethod
-    def build(cls, d, parent=None, graph=None, workingdir=None):
-        op = cls(parent=parent, graph=graph)
-        return op
 
+class OpRFTrain(OpTrain, Classification):
     def execute(self, slot, subindex, roi, result):
         assert len(self.Train) == 2, "need data and target"
         assert len(self.Valid) == 2, "need data and target"

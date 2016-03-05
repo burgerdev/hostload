@@ -16,7 +16,7 @@ from deeplearning.targets import OpExponentiallySegmentedPattern
 from deeplearning.tools import Graph
 
 
-# pylint: disable-msg=R0913
+# pylint: disable=R0913
 def time_delay_runge_kutta_4(fun, t_0, y_0, tau, history=None, steps=1000,
                              width=1):
     """
@@ -54,9 +54,9 @@ def time_delay_runge_kutta_4(fun, t_0, y_0, tau, history=None, steps=1000,
 
 
 # mackey glass does not depend on time explicitly, disable "unused arg"
-# pylint: disable-msg=W0613
+# pylint: disable=W0613
 # difference equations just need that many arguments, deal with it
-# pylint: disable-msg=R0913
+# pylint: disable=R0913
 def mackey_glass(beta, gamma, tau, exponent, steps=1000, width=.1):
     """
     approximation for Mackey-Glass-Function
