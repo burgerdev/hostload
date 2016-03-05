@@ -5,10 +5,9 @@ Module contains the class OpTrainTestSplit, which splits data by time.
 import numpy as np
 import vigra
 
-from lazyflow.operator import Operator, InputSlot, OutputSlot
-from lazyflow.rtype import SubRegion
 
-from deeplearning.tools import Buildable
+from deeplearning.tools import Operator, InputSlot, OutputSlot
+from deeplearning.tools import SubRegion
 
 
 class SplitTypes(object):  # pylint: disable=R0903,W0232
@@ -22,7 +21,7 @@ class SplitTypes(object):  # pylint: disable=R0903,W0232
     TEST = 2
 
 
-class OpTrainTestSplit(Buildable, Operator):
+class OpTrainTestSplit(Operator):
     """
     splits by time into train, test and validation set
 

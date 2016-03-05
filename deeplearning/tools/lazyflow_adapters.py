@@ -29,7 +29,7 @@ class _SetInSlotMixin(object):
         LOGGER.error("'setInSlot' not supported in this module")
 
 
-class Operator(_SetInSlotMixin, _Operator):
+class Operator(_SetInSlotMixin, Buildable, _Operator):
     pass
 
 
