@@ -1,5 +1,10 @@
 """
-Module contains the class OpTrainTestSplit, which splits data by time.
+Module for splitting datasets into train, test and validation sets
+
+OpTrainTestSplit is the main implementation, which splits data by time such
+that events in the future are in the test set. This is supposed to reflect the
+real-world situation of unknown development of time-series, a problem which
+does not exist for spatial prediction techniques.
 """
 
 import numpy as np

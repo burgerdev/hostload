@@ -1,43 +1,52 @@
+"""
+Functions for dealing with config dictionaries for batch processing.
+
+TODO describe expansion
+"""
 
 from itertools import product
 from itertools import chain
 
-import numpy as np
 
-
-def expandDict(d, listify=True):
+def expand_dict(dict_, listify=True):
+    """
+    create several config dicts from one, expanding the lists inside
+    """
     if listify:
-        d = listifyDict(d)
+        dict_ = listify_dict(dict_)
 
-    if not isinstance(d, dict):
-        return [d]
+    if not isinstance(dict_, dict):
+        return [dict_]
 
-    keys = d.keys()
+    keys = dict_.keys()
     lists = []
-    for k in keys:
-        l = [expandDict(item, listify=False) for item in d[k]]
-        lists.append(list(chain(*l)))
+    for key in keys:
+        expanded_subs = [expand_dict(item, listify=False)
+                         for item in dict_[key]]
+        lists.append(list(chain(*expanded_subs)))
 
     return [dict(zip(keys, combi)) for combi in product(*lists)]
 
 
-def listifyDict(d):
-    if not isinstance(d, dict):
-        return d
+def listify_dict(dict_):
+    """
+    turn each element that is not a list into a one-element list
+    """
+    if not isinstance(dict_, dict):
+        return dict_
 
-    def listify_sub(k):
-        v = d[k]
-        if isinstance(v, dict):
-            return [listifyDict(v)]
-        elif isinstance(v, list):
-            return [listifyDict(el) for el in v]
+    def listify_sub(key):
+        """
+        actual worker
+        """
+        value = dict_[key]
+        if isinstance(value, dict):
+            return [listify_dict(value)]
+        elif isinstance(value, list):
+            return [listify_dict(el) for el in value]
         else:
-            return [v]
+            return [value]
 
-    keys = d.keys()
-    values = [listify_sub(k) for k in keys]
+    keys = dict_.keys()
+    values = [listify_sub(key) for key in keys]
     return dict(zip(keys, values))
-
-
-def get_rng():
-    return np.random.RandomState(420)

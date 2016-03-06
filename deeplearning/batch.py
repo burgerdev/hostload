@@ -1,13 +1,16 @@
 """
 tools for batch processing
+
+Batch runs are specified by the special dictionary structure detailed in module
+'tools/config.py'.
 """
 
 import os
 import logging
 import traceback
 
-from deeplearning.tools import listifyDict
-from deeplearning.tools import expandDict
+from deeplearning.tools import listify_dict
+from deeplearning.tools import expand_dict
 from deeplearning.tools import IncompatibleTargets
 
 from deeplearning.workflow import Workflow
@@ -28,7 +31,7 @@ def run_batch(config, workingdir, continue_on_failure=True):
             first run, to 2 in the second run
     * the directory has to exist
     """
-    configs_to_run = list(expandDict(listifyDict(config)))
+    configs_to_run = list(expand_dict(listify_dict(config)))
 
     num_configs = len(configs_to_run)
     digits = 1

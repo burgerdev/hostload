@@ -70,6 +70,7 @@ def default_mackey_glass_series():
 
 
 # uncomment to visualize Mackey-Glass series
+# pylint: disable=W0105
 '''
 import vigra
 from matplotlib import pyplot as plt

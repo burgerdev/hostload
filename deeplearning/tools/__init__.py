@@ -1,9 +1,12 @@
+"""
+Various tools that did not fit anywhere else.
+"""
+
 from .abcs import Buildable
 from .abcs import build_operator
 
-from .config import expandDict
-from .config import listifyDict
-from .config import get_rng
+from .config import expand_dict
+from .config import listify_dict
 
 from .prediction import Classification
 from .prediction import Regression
@@ -20,3 +23,5 @@ from .lazyflow_adapters import OpReorderAxes
 from .lazyflow_adapters import OpStreamingHdf5Reader
 from .lazyflow_adapters import OpArrayPiper
 from .lazyflow_adapters import OpArrayPiperWithAccessCount
+
+from .other import get_rng

@@ -1,4 +1,6 @@
-
+"""
+extensions in this module are *not safe* and therefore not imported by default
+"""
 import signal
 
 from .extensions import BuildableTrainExtension
@@ -13,6 +15,8 @@ class SignalExtension(BuildableTrainExtension):
     """
     signaled = False
 
+    _graceful_exit = (signal.SIGHUP,)
+
     def on_monitor(self, model, dataset, algorithm):
         """
         request quit if a signal was received
@@ -22,7 +26,10 @@ class SignalExtension(BuildableTrainExtension):
 
     @classmethod
     def handler(cls, signum, _):
-        if signum in (signal.SIGHUP, signal.SIGTERM):
+        """
+        initiates graceful shutdown when signaled
+        """
+        if signum in cls._graceful_exit:
             cls.signaled = True
         else:
             raise RuntimeError("caught signal {}".format(signum))

@@ -13,8 +13,6 @@ from deeplearning.tools import Classification
 from deeplearning.tools import Regression
 
 
-# Not a problem that OpSVMTrain has many ancestors
-# pylint: disable=R0901
 class OpSVMTrain(OpTrain, Regression, Classification):
     def execute(self, slot, subindex, roi, result):
         assert len(self.Train) == 2, "need data and target"
@@ -66,5 +64,3 @@ class OpSVMPredict(OpPredict, Regression, Classification):
                 result[:, i] = classes == c
         else:
             raise ValueError("incompatible model '{}'".format(type(model)))
-
-

@@ -34,8 +34,6 @@ from pylearn2 import train
 logger = logging.getLogger(__name__)
 
 
-# OpMLPTrain has many parents, but you don't need to know that to use it
-# pylint: disable=R0901
 class OpMLPTrain(OpTrain, Classification, Regression):
     __num_dimensions = 2
 

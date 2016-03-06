@@ -5,7 +5,6 @@ multi-purpose operators
 import numpy as np
 
 from .lazyflow_adapters import Operator, InputSlot, OutputSlot
-from .lazyflow_adapters import OpArrayPiper
 
 from .abcs import Buildable
 
@@ -51,22 +50,30 @@ class OpNormalize(Operator, Buildable):
         self.Output.setDirty(slice(None))
 
 
-class OpChangeDtype(OpArrayPiper, Buildable):
+class OpChangeDtype(Operator):
     """
     cast input array to different dtype
     """
-    Dtype = InputSlot(value=np.float32)
+    Input = InputSlot()
+    Output = OutputSlot()
+    Dtype = InputSlot(optional=True)
+
+    __dtype = np.float32
 
     @classmethod
-    def build(cls, config, parent=None, graph=None, workingdir=None):
-        operator = cls(parent=parent, graph=graph)
-        if "dtype" in config:
-            operator.Dtype.setValue(config["dtype"])
-        return operator
+    def get_default_config(cls):
+        config = super(OpChangeDtype, cls).get_default_config()
+        config["dtype"] = cls.__dtype
+        return config
 
     def setupOutputs(self):
-        super(OpChangeDtype, self).setupOutputs()
-        self.Output.meta.dtype = self.Dtype.value
+        self.Output.meta.assignFrom(self.Input.meta)
+        if self.Dtype.ready():
+            self.Output.meta.dtype = self.Dtype.value
+        elif hasattr(self, "_dtype"):
+            self.Output.meta.dtype = self._dtype
+        else:
+            self.Output.meta.dtype = self.__dtype
 
     def execute(self, slot, subindex, roi, result):
         out_type = self.Output.meta.dtype
@@ -75,3 +82,6 @@ class OpChangeDtype(OpArrayPiper, Buildable):
         else:
             input_ = self.Input.get(roi).wait()
             result[:] = input_.astype(out_type)
+
+    def propagateDirty(self, slot, subindex, roi):
+        self.Output.setDirty(roi)

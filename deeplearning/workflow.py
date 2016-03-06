@@ -1,3 +1,8 @@
+"""
+The Workflow classes join data source definition, feature extraction,
+train/test split, training, testing and reporting in a single runnable object.
+"""
+
 
 import tempfile
 import os
@@ -20,12 +25,18 @@ from deeplearning.report import OpRegressionReport
 
 
 class Workflow(Buildable):
+    """
+    machine learning workflow
+    """
     Features = None
     Prediction = None
     Target = None
 
     @classmethod
     def build(cls, outer_config, parent=None, graph=None, workingdir=None):
+        """
+        custom workflow setup isntructions
+        """
         assert parent is None
         assert graph is None
 
@@ -98,10 +109,18 @@ class Workflow(Buildable):
         self._post_run()
 
     def set_classifier(self, classifier):
+        """
+        force workflow to use an external classifier
+
+        This is useful for reloading a previously trained model.
+        """
         self._predict.Classifier.disconnect()
         self._predict.Classifier.setValue(classifier)
 
     def _initialize(self):
+        """
+        set up operator connections
+        """
         source = self._source
         features = self._features
         target = self._target
@@ -150,6 +169,9 @@ class Workflow(Buildable):
         self.Target = target.Output
 
     def _pre_run(self):
+        """
+        prepare everything for the next run
+        """
         assert self._config is not None,\
             "workflow not configured - did you run build()?"
         # write config file
@@ -170,6 +192,9 @@ class Workflow(Buildable):
         self._start_time = datetime.datetime.now()
 
     def _post_run(self):
+        """
+        process results of last run
+        """
         # keep time for reporting
         time_elapsed = datetime.datetime.now() - self._start_time
         # write config file
@@ -179,6 +204,9 @@ class Workflow(Buildable):
             f.write("\n")
 
     def _cleanup(self):
+        """
+        deallocate everything so that we don't leak memory
+        """
         c = self._predictionCache
         self._report.All[0].disconnect()
         c.Input.disconnect()
@@ -187,6 +215,9 @@ class Workflow(Buildable):
         del c
 
     def _sanity_check(self):
+        """
+        check if operators are compatible
+        """
         if isinstance(self._target, Classification):
             t = Classification
         elif isinstance(self._target, Regression):

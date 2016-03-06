@@ -11,8 +11,8 @@ from lazyflow.operators import OpArrayPiper
 
 from deeplearning.tools import OpArrayPiper as OpBuildableArrayPiper
 
-from deeplearning.tools import listifyDict
-from deeplearning.tools import expandDict
+from deeplearning.tools import listify_dict
+from deeplearning.tools import expand_dict
 from deeplearning.tools import build_operator
 
 from deeplearning.tools.serialization import dumps
@@ -26,18 +26,18 @@ class TestTools(unittest.TestCase):
     def setUp(self):
         pass
 
-    def testListifyDict(self):
+    def testlistify_dict(self):
         d = {'a': [1, 2], 'b': 'x', 'c': {'d': 7, 'e': [Exception]},
              'f': (0, 1)}
         e = {'a': [1, 2], 'b': ['x'], 'c': [{'d': [7],
                                              'e': [Exception]}], 'f': [(0, 1)]}
-        d2 = listifyDict(d)
+        d2 = listify_dict(d)
         if e != d2:
             pprint(d)
             pprint(d2)
             raise AssertionError("not listified correctly")
 
-    def testExpandDict(self):
+    def testexpand_dict(self):
         d = {'a': [1, 2], 'b': ['x'],
              'c': [{'d': [7, 8], 'e': [Exception]}]}
 
@@ -47,14 +47,14 @@ class TestTools(unittest.TestCase):
         l.append({'a': 2, 'b': 'x', 'c': {'d': 7, 'e': Exception}})
         l.append({'a': 2, 'b': 'x', 'c': {'d': 8, 'e': Exception}})
 
-        l2 = list(expandDict(d))
+        l2 = list(expand_dict(d))
 
         if not contentEqual(l, l2):
             pprint(l)
             pprint(l2)
-            raise AssertionError("expandDict produced unexpected dicts")
+            raise AssertionError("expand_dict produced unexpected dicts")
 
-    def testExpandDictFull(self):
+    def testexpand_dictFull(self):
         d1 = {0: 0}
         d2 = {1: [1, 1.1]}
         d = {'a': (0, 1), 'b': [d1, d2]}
@@ -64,12 +64,12 @@ class TestTools(unittest.TestCase):
         l.append({'a': (0, 1), 'b': {1: 1}})
         l.append({'a': (0, 1), 'b': {1: 1.1}})
 
-        l2 = list(expandDict(listifyDict(d)))
+        l2 = list(expand_dict(listify_dict(d)))
 
         if not contentEqual(l, l2):
             pprint(l)
             pprint(l2)
-            raise AssertionError("expandDict produced unexpected dicts")
+            raise AssertionError("expand_dict produced unexpected dicts")
 
     def testbuild_operator(self):
         class NotBuildable(OpArrayPiper):
@@ -139,7 +139,7 @@ class TestTools(unittest.TestCase):
         x = np.random.randint(0, 255, size=(1000,)).astype(np.int)
         x = vigra.taggedView(x, axistags='t')
 
-        op = OpChangeDtype.build({"dtype": np.float32}, graph=Graph())
+        op = OpChangeDtype.build({}, graph=Graph())
         op.Input.setValue(x)
 
         y = op.Output[...].wait()

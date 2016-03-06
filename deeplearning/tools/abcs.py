@@ -1,3 +1,9 @@
+"""
+Recursively buildable operators for automatization.
+
+Calling constructors is replaced by config dictionaries and recursively calling
+build_operator().
+"""
 
 import logging
 

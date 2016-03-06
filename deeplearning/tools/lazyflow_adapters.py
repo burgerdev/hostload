@@ -22,7 +22,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 # we are just fixing lazyflow, ignore pylint errors for this mixin
-# pylint: disable=R0201,R0903,W0613,W0223
+# pylint: disable=all
 
 class _SetInSlotMixin(object):
     """
@@ -34,9 +34,6 @@ class _SetInSlotMixin(object):
 
 class Operator(_SetInSlotMixin, Buildable, _Operator):
     pass
-
-
-# pylint: enable=R0201,R0903,W0613,W0223
 
 
 class OpStreamingHdf5Reader(_SetInSlotMixin, Buildable, _OpHdf5):

@@ -1,3 +1,8 @@
+"""
+Extensions for pylearn2 training algorithms. Those are either reimplemented to
+suit the execution model of this package, or new ones for recorting metrics.
+"""
+
 
 import os
 import cPickle as pkl
@@ -10,6 +15,9 @@ from .abcs import Buildable
 
 
 class BuildableTrainExtension(TrainExtension, Buildable):
+    """
+    makes a pylearn2 TrainExtension buildable
+    """
     @classmethod
     def build(cls, config, parent=None, graph=None, workingdir=None):
         """
@@ -38,6 +46,9 @@ class BuildableTrainExtension(TrainExtension, Buildable):
 
 
 class PersistentTrainExtension(BuildableTrainExtension):
+    """
+    abstract extension that can store its results (on disk, probably)
+    """
     def store(self):
         """
         store the findings of this extension
@@ -48,6 +59,9 @@ class PersistentTrainExtension(BuildableTrainExtension):
 class WeightKeeper(PersistentTrainExtension):
     """
     keeps track of the model's weights at each monitor step
+
+    This model stores weights *per monitor step* - the list grows large pretty
+    quickly.
     """
     _weights = []
 
@@ -64,17 +78,20 @@ class WeightKeeper(PersistentTrainExtension):
         self._weights = []
 
     def get_weights(self):
+        """
+        get weights history
+        """
         return self._weights
 
     def store(self):
         path = os.path.join(self._wd, "weightkeeper.pkl")
-        with open(path, "w") as f:
-            pkl.dump(self._weights, f)
+        with open(path, "w") as file_:
+            pkl.dump(self._weights, file_)
 
 
 class ProgressMonitor(PersistentTrainExtension):
     """
-    keeps track of the model's weights at each monitor step
+    Makes the monitor channel's history accessible to us.
     """
 
     _progress = np.NaN
@@ -95,13 +112,16 @@ class ProgressMonitor(PersistentTrainExtension):
         self._progress = channel.val_record
 
     def get_progress(self):
+        """
+        get the value's history
+        """
         return self._progress
 
     def store(self):
         filename = "progress_{}.pkl".format(self._channel)
         path = os.path.join(self._wd, filename)
-        with open(path, "w") as f:
-            pkl.dump(self._progress, f)
+        with open(path, "w") as file_:
+            pkl.dump(self._progress, file_)
 
 
 class MonitorBasedSaveBest(BuildableTrainExtension):
@@ -147,39 +167,3 @@ class MonitorBasedSaveBest(BuildableTrainExtension):
         if new_cost < self.best_cost:
             self.best_cost = new_cost
             self.best_params = model.get_param_values()
-
-
-try:
-    from .mem import traverse
-    from .mem import get_arrays
-except ImportError:
-    pass
-else:
-    class MemoryDebugger(PersistentTrainExtension):
-        """
-        uses the pympler module for debugging memory leaks
-        """
-        _new_arrays = []
-        _id_set = set()
-
-        def on_monitor(self, model, dataset, algorithm):
-            """
-            add a new report about leaked objects
-            """
-            self._update_arrays()
-
-        def setup(self, model, dataset, algorithm):
-            """
-            initialize the weight list
-            """
-            self._new_arrays = []
-            self._id_set = set()
-            self._update_arrays()
-
-        def store(self):
-            traverse(self._new_arrays, start=True)
-
-        def _update_arrays(self):
-            self._new_arrays = [a for a in get_arrays()
-                                if id(a) not in self._id_set]
-            self._id_set.update(set([id(a) for a in self._new_arrays]))
