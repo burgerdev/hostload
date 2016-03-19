@@ -24,6 +24,10 @@ from deeplearning.split import OpTrainTestSplit
 from deeplearning.report import OpRegressionReport
 
 
+# we use lazyflow slot notation, ignore pylint's hint that they should not
+# start capitalized
+# pylint: disable=C0103
+
 class Workflow(Buildable):
     """
     machine learning workflow
@@ -60,9 +64,9 @@ class Workflow(Buildable):
             else:
                 workingdir = tempfile.mkdtemp(prefix="deeplearning_")
 
-        w = cls(workingdir=workingdir, config=config)
+        workflow = cls(workingdir=workingdir, config=config)
 
-        return w
+        return workflow
 
     def __init__(self, workingdir=None, config=None):
         self._config = None
@@ -104,6 +108,9 @@ class Workflow(Buildable):
         self._config = config
 
     def run(self):
+        """
+        run this workflow with all pre/postprocessing
+        """
         self._pre_run()
         self._report.Output[...].block()
         self._post_run()
@@ -126,9 +133,9 @@ class Workflow(Buildable):
         target = self._target
         split = self._split
         train = self._train
-        cc = self._classifierCache
+        classifier_cache = self._classifierCache
         predict = self._predict
-        pc = self._predictionCache
+        prediction_cache = self._predictionCache
         report = self._report
 
         lastOutput = source.Output
@@ -147,16 +154,16 @@ class Workflow(Buildable):
         train.Train.connect(split.Train)
         train.Valid.connect(split.Valid)
 
-        cc.Input.connect(train.Classifier)
+        classifier_cache.Input.connect(train.Classifier)
 
-        predict.Classifier.connect(cc.Output)
+        predict.Classifier.connect(classifier_cache.Output)
         predict.Input.connect(split.All[0])
         predict.Target.connect(split.Train[1])
 
-        pc.Input.connect(predict.Output)
+        prediction_cache.Input.connect(predict.Output)
 
         report.All.resize(2)
-        report.All[0].connect(pc.Output)
+        report.All[0].connect(prediction_cache.Output)
         report.All[1].connect(target.Output)
 
         report.Valid.resize(2)
@@ -175,11 +182,11 @@ class Workflow(Buildable):
         assert self._config is not None,\
             "workflow not configured - did you run build()?"
         # write config file
-        s = dumps(self._config, indent=4, sort_keys=True)
-        fn = os.path.join(self._workingdir, "config.json")
-        with open(fn, "w") as f:
-            f.write(s)
-            f.write("\n")
+        config_string = dumps(self._config, indent=4, sort_keys=True)
+        filename = os.path.join(self._workingdir, "config.json")
+        with open(filename, "w") as file_:
+            file_.write(config_string)
+            file_.write("\n")
 
         # perform sanity checks, terminate early if incompatible
         try:
@@ -198,38 +205,40 @@ class Workflow(Buildable):
         # keep time for reporting
         time_elapsed = datetime.datetime.now() - self._start_time
         # write config file
-        fn = os.path.join(self._workingdir, "elapsed_time.txt")
-        with open(fn, "w") as f:
-            f.write(str(time_elapsed))
-            f.write("\n")
+        filename = os.path.join(self._workingdir, "elapsed_time.txt")
+        with open(filename, "w") as file_:
+            file_.write(str(time_elapsed))
+            file_.write("\n")
 
     def _cleanup(self):
         """
         deallocate everything so that we don't leak memory
+
+        Don't use this workflow after calling cleanup!
         """
-        c = self._predictionCache
+        cache = self._predictionCache
         self._report.All[0].disconnect()
-        c.Input.disconnect()
-        c.cleanUp()
+        cache.Input.disconnect()
+        cache.cleanUp()
         del self._predictionCache
-        del c
+        del cache
 
     def _sanity_check(self):
         """
         check if operators are compatible
         """
         if isinstance(self._target, Classification):
-            t = Classification
+            my_prediction_type = Classification
         elif isinstance(self._target, Regression):
-            t = Regression
+            my_prediction_type = Regression
         else:
             raise IncompatibleTargets("unkown target type")
 
-        if not isinstance(self._train, t):
+        if not isinstance(self._train, my_prediction_type):
             raise IncompatibleTargets("incompatible training type")
-        if not isinstance(self._predict, t):
+        if not isinstance(self._predict, my_prediction_type):
             raise IncompatibleTargets("incompatible prediction type")
-        if not isinstance(self._report, t):
+        if not isinstance(self._report, my_prediction_type):
             raise IncompatibleTargets("incompatible report type")
 
     @classmethod
