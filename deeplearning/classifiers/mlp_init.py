@@ -421,3 +421,132 @@ class OptimalInitializer(ModelWeightInitializer):
         biases.append(np.zeros(1,))
 
         return weights, biases
+
+
+class GridInitializer(ModelWeightInitializer):
+    """
+    rasterized initialization
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(GridInitializer, self).__init__(*args, **kwargs)
+
+    @classmethod
+    def get_default_config(cls):
+        config = super(GridInitializer, cls).get_default_config()
+        config["rng"] = get_rng()
+        del config["initializers"]
+        return config
+
+    def init_model(self, model):
+        self._model = model
+
+        self._prepare()
+
+        dim_input = model.get_input_space().dim
+        dim_layer1 = model.layers[0].get_output_space().dim
+        dim_layer2 = model.layers[1].get_output_space().dim
+
+        num_bins = dim_layer1 // dim_input
+
+        weights, biases = self._get_first_layer(dim_input, num_bins)
+        self._model.layers[0].set_weights(weights.astype(np.float32))
+        self._model.layers[0].set_biases(biases.astype(np.float32))
+
+        num_bumps = dim_layer2
+        weights, biases = self._get_second_layer(dim_input, num_bins,
+                                                 num_bumps)
+        self._model.layers[0].set_weights(weights.astype(np.float32))
+        self._model.layers[0].set_biases(biases.astype(np.float32))
+
+    def _get_first_layer(self, dim_input, num_bins):
+        # divide each input dimension [0,1] into bins
+        bin_edges = np.linspace(0, 1, num_bins+1)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:])/2.0
+        # center the bins
+        scale = float(num_bins)
+        biases_1d = -scale*bin_centers
+
+        weights = np.zeros((dim_input, self._dims[1]))
+        biases = np.zeros((self._dims[1],))
+
+        for dim in range(dim_input):
+            weights[dim, dim*num_bins:(dim+1)*num_bins] = scale
+
+        biases = np.concatenate((biases_1d,)*dim_input)
+        return weights, biases
+
+    def _get_second_layer(self, dim_input, num_bins, num_bumps):
+        weights = np.zeros((dim_input*num_bins, num_bumps))
+        biases = np.zeros((num_bumps,))
+
+        return weights, biases
+
+    def _prepare(self):
+        model = self._model
+        dims = np.zeros((len(model.layers)+1,), dtype=np.int)
+        dims[0] = model.get_input_space().dim
+        for i, layer in enumerate(model.layers):
+            dims[i+1] = model.layers[i].get_output_space().dim
+        self._dims = dims
+
+        check(len(model.layers) == 3,
+              "initializer works with exactly 3 layers")
+        check(self._dims[1] % self._dims[0] == 0,
+              "size of first layer must be a multiple of input dimensionality")
+
+
+def check(cond, msg):
+    if not cond:
+        raise PreconditionError(msg)
+
+
+class PreconditionError(Exception):
+    def __init__(self, msg, *args, **kwargs):
+        msg2 = "Precondition not met: {}".format(str(msg))
+        super().__init__(self, msg2, *args, **kwargs)
+
+
+if __name__ == "__main__":
+    from lazyflow.graph import Graph
+    from pylearn2.models.mlp import MLP
+    from pylearn2.models.mlp import Sigmoid
+    from pylearn2.models.mlp import Linear
+
+    num_dim = 2
+    num_bins = 3
+
+    x = np.asarray([0, 0, 1, 1, .5])
+    y = np.asarray([0, 1, 0, 1, .5])
+    vol = np.zeros((5, num_dim), dtype=np.float32)
+    vol[:, 0] = x
+    vol[:, 1] = y
+    vol = vigra.taggedView(vol, axistags='tc')
+    target = np.zeros((vol.shape[0], 1))
+    target = vigra.taggedView(target, axistags='tc')
+
+    """
+    layers = [Sigmoid(layer_name='bumps', irange=0, dim=2*nvis*ncent),
+              Sigmoid(layer_name='cents', irange=0, dim=ncent),
+              Linear(layer_name='out', irange=0, dim=1)]
+    """
+
+    layers = [Sigmoid(layer_name='1d', irange=0, dim=num_dim*num_bins),
+              Linear(layer_name='1d', irange=0, dim=num_dim*num_bins)]
+
+    mlp = MLP(layers=layers, nvis=num_dim)
+
+    init = GridInitializer.build({}, graph=Graph())
+    init.Data.setValue(vol)
+    init.Target.setValue(target)
+    init.init_model(mlp)
+
+    op = OpForwardLayers(layers[:], graph=Graph())
+    op.Input.setValue(vol)
+
+    z_pred = op.Output[...].wait().squeeze()
+    for i, sub in enumerate(z_pred):
+        print("=======")
+        print(i)
+        print(vol[i])
+        print(sub.reshape((2, 3)))

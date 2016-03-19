@@ -8,6 +8,7 @@ from deeplearning.classifiers.mlp_init import PCAWeightInitializer
 from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
 from deeplearning.classifiers.mlp_init import OpForwardLayers
 from deeplearning.classifiers.mlp_init import OptimalInitializer
+from deeplearning.classifiers.mlp_init import GridInitializer
 
 from lazyflow.graph import Graph
 
@@ -89,15 +90,6 @@ class TestInitializers(unittest.TestCase):
         np.testing.assert_array_almost_equal(out, self.X)
 
     def testOptimalInit(self):
-        x = np.linspace(0, 1)
-        X, Y = np.meshgrid(x, x)
-        x = X.ravel()
-        y = Y.ravel()
-        vol = np.zeros((X.size, 2), dtype=np.float32)
-        vol[:, 0] = x
-        vol[:, 1] = y
-        vol = vigra.taggedView(vol, axistags='tc')
-
         x = np.asarray([0, 0, 1, 1, .5])
         y = np.asarray([0, 1, 0, 1, .5])
         vol = np.zeros((5, 2), dtype=np.float32)
@@ -107,9 +99,6 @@ class TestInitializers(unittest.TestCase):
 
         z = x*(1-y) + y*(1-x)
         z = vigra.taggedView(z[:, np.newaxis], axistags='tc')
-
-        x = np.asarray([0, 0, 1, 1, .5])
-        y = np.asarray([0, 1, 0, 1, .5])
 
         nvis = 2
         ncent = 5
@@ -129,3 +118,42 @@ class TestInitializers(unittest.TestCase):
         z_pred = op.Output[..., 0].wait().squeeze()
         assert max(z_pred[0], z_pred[3]) < z_pred[4]
         assert min(z_pred[1], z_pred[2]) > z_pred[4]
+
+    def testGridInit1(self):
+        num_dim = 2
+        num_bins = 3
+
+        x = np.asarray([0, 0, 1, 1, .5])
+        y = np.asarray([0, 1, 0, 1, .5])
+        vol = np.zeros((5, num_dim), dtype=np.float32)
+        vol[:, 0] = x
+        vol[:, 1] = y
+        vol = vigra.taggedView(vol, axistags='tc')
+        target = np.zeros((vol.shape[0], 1))
+        target = vigra.taggedView(target, axistags='tc')
+
+        """
+        layers = [Sigmoid(layer_name='bumps', irange=0, dim=2*nvis*ncent),
+                  Sigmoid(layer_name='cents', irange=0, dim=ncent),
+                  Linear(layer_name='out', irange=0, dim=1)]
+        """
+
+        layers = [Linear(layer_name='1d', irange=0, dim=num_dim*num_bins),
+                  Sigmoid(layer_name='cents', irange=0, dim=1),
+                  Linear(layer_name='out', irange=0, dim=1)]
+
+        mlp = MLP(layers=layers, nvis=num_dim)
+
+        init = GridInitializer.build({}, graph=Graph())
+        init.Data.setValue(vol)
+        init.Target.setValue(target)
+        init.init_model(mlp)
+
+        op = OpForwardLayers(layers[:1], graph=Graph())
+        op.Input.setValue(vol)
+
+        output = op.Output[:, :num_bins].wait()
+        computed = np.argmin(np.abs(output), axis=1)
+        expected = np.asarray([0, 0, 2, 2, 1])
+
+        np.testing.assert_array_equal(computed, expected)
