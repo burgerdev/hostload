@@ -122,6 +122,7 @@ class TestInitializers(unittest.TestCase):
     def testGridInit1(self):
         num_dim = 2
         num_bins = 3
+        num_bumps = num_bins**2
 
         x = np.asarray([0, 0, 1, 1, .5])
         y = np.asarray([0, 1, 0, 1, .5])
@@ -138,8 +139,8 @@ class TestInitializers(unittest.TestCase):
                   Linear(layer_name='out', irange=0, dim=1)]
         """
 
-        layers = [Linear(layer_name='1d', irange=0, dim=num_dim*num_bins),
-                  Sigmoid(layer_name='cents', irange=0, dim=1),
+        layers = [Sigmoid(layer_name='1d', irange=0, dim=num_dim*num_bins),
+                  Sigmoid(layer_name='cents', irange=0, dim=num_bumps),
                   Linear(layer_name='out', irange=0, dim=1)]
 
         mlp = MLP(layers=layers, nvis=num_dim)
@@ -153,7 +154,7 @@ class TestInitializers(unittest.TestCase):
         op.Input.setValue(vol)
 
         output = op.Output[:, :num_bins].wait()
-        computed = np.argmin(np.abs(output), axis=1)
+        computed = np.argmin(np.abs(output - .5), axis=1)
         expected = np.asarray([0, 0, 2, 2, 1])
 
         np.testing.assert_array_equal(computed, expected)

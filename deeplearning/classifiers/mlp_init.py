@@ -456,8 +456,8 @@ class GridInitializer(ModelWeightInitializer):
         num_bumps = dim_layer2
         weights, biases = self._get_second_layer(dim_input, num_bins,
                                                  num_bumps)
-        self._model.layers[0].set_weights(weights.astype(np.float32))
-        self._model.layers[0].set_biases(biases.astype(np.float32))
+        self._model.layers[1].set_weights(weights.astype(np.float32))
+        self._model.layers[1].set_biases(biases.astype(np.float32))
 
     def _get_first_layer(self, dim_input, num_bins):
         # divide each input dimension [0,1] into bins
