@@ -39,6 +39,12 @@ class _BaseDataset(OpArrayPiperWithAccessCount):
         op.Input.setValue(data)
         return op
 
+    @classmethod
+    def get_default_config(cls):
+        config = super(_BaseDataset, cls).get_default_config()
+        config["shape"] = (10000,)
+        return config
+
     def create_dataset(self, config, rng):
         """
         create a dataset with given config and RNG
@@ -52,11 +58,6 @@ class OpNoisySine(_BaseDataset):
     """
     a sine curve with added noise
     """
-    @classmethod
-    def get_default_config(cls):
-        config = _BaseDataset.get_default_config()
-        config["shape"] = (10000,)
-        return config
 
     def create_dataset(self, config, rng):
         num_examples = self._shape[0]
@@ -73,11 +74,6 @@ class OpShuffledLinspace(_BaseDataset):
     """
     equally spaced data from [0, 1], shuffled
     """
-    @classmethod
-    def get_default_config(cls):
-        config = _BaseDataset.get_default_config()
-        config["shape"] = (10000,)
-        return config
 
     def create_dataset(self, config, rng):
         data = np.linspace(0, 1, self._shape[0])
@@ -213,6 +209,7 @@ class OpMackeyGlass(_BaseDataset):
         32       -> 0.00263267743529
         64       -> 0.00935371769061
     """
+
     def create_dataset(self, config, rng):
         data = default_mackey_glass_series()
         upper = data.max()
