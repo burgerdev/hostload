@@ -127,6 +127,9 @@ class PCAWeightInitializer(OperatorLayerWeightInitializer):
         layer.set_weights(weights)
         biases = biases.astype(np.float32)
         layer.set_biases(biases)
+        for array in (weights, biases):
+            assert not np.any(np.isnan(array))
+            assert not np.any(np.isinf(array))
 
     @staticmethod
     def _pca(data):
@@ -163,10 +166,9 @@ class PCAWeightInitializer(OperatorLayerWeightInitializer):
         # deviations, so we restrict ourselves to some fraction p of the total
         # energy.
         # Note that \sigma^2_{cutoff} >= (1-p)*total_energy/(dim - cutoff + 1).
-        #FIXME feature turned off for now, usefulness is questionable
-        # fraction = 0.95
-        # cutoff = np.where(cumulated_energy >= fraction*total_energy)[0][0]
-        cutoff = len(variances) - 1
+        fraction = 0.999
+        cutoff = np.where(cumulated_energy >= fraction*total_energy)[0][0]
+        # cutoff = len(variances) - 1
 
         dim = cutoff + 1
         variances = variances[:dim]
@@ -191,7 +193,7 @@ class PCAWeightInitializer(OperatorLayerWeightInitializer):
 
         if num_components > 2*dim:
             # normalize variances so that we can use them as probabilities
-            importance = variances / (total_energy - cumulated_energy[cutoff])
+            importance = variances / variances.sum()
             importance_interleaved = np.zeros((2*dim,), dtype=np.float32)
             importance_interleaved[::2] = importance
             importance_interleaved[1::2] = importance
@@ -266,7 +268,7 @@ class LeastSquaresWeightInitializer(OperatorLayerWeightInitializer):
 
         # determine output weights by least squares fit
         M = self._apply_nonlinearity(np.dot(X, A.T) + b)
-        c = np.dot(np.linalg.pinv(M), y)
+        c = np.linalg.lstsq(M, y)[0]
         assert len(c) == num_hyperplanes
 
         # take hyperplanes corresponding to large weights
