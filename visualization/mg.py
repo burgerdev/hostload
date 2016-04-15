@@ -21,7 +21,7 @@ if __name__ == "__main__":
     data = data[start:stop]
     time = time[start:stop]
 
-    plt.plot(time, data)
+    plt.plot(time, data, 'k')
     plt.xlabel("time step")
     plt.ylabel("Mackey-Glass series")
     plt.show()
