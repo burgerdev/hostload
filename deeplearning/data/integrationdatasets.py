@@ -201,13 +201,6 @@ class OpNormTarget(OpRegTarget):
 class OpMackeyGlass(_BaseDataset):
     """
     dataset from Mackey-Glass function
-
-    performance of "last known state estimator":
-        baseline -> MSE
-        8        -> 0.000199561830787
-        16       -> 0.000720119728291
-        32       -> 0.00263267743529
-        64       -> 0.00935371769061
     """
 
     def create_dataset(self, config, rng):
