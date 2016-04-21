@@ -16,9 +16,9 @@ from deeplearning.workflow import RegressionWorkflow
 from deeplearning.split import OpTrainTestSplit
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers.mlp import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp import NormalWeightInitializer
-from deeplearning.classifiers.mlp import PCAWeightInitializer
+from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
+from deeplearning.classifiers.mlp_init import NormalWeightInitializer
+from deeplearning.classifiers.mlp_init import PCAWeightInitializer
 
 
 num_epochs = 10
