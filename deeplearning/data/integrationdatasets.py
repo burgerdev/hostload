@@ -172,6 +172,19 @@ class OpRandomUnitSquare(_BaseDataset):
         return data
 
 
+class OpRandomCorners(OpRandomUnitSquare):
+    """
+    random data clustered in the unit square corners
+    """
+
+    def create_dataset(self, config, rng):
+        noise = (rng.rand(*self._shape)-.5)*.2
+        data = np.random.choice([.1, .9], size=self._shape)
+        data += noise
+        data = vigra.taggedView(data, axistags="tc")
+        return data
+
+
 class OpXORTarget(OpRegTarget):
     """
     The result of (kinda) XORing channel 0 and 1

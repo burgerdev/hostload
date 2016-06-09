@@ -1,94 +1,141 @@
 
 import tempfile
 
+from matplotlib import pyplot as plt
+import matplotlib.animation as animation
+
 import numpy as np
 import theano
+
 from pylearn2.models import mlp
 
 from deeplearning.data.integrationdatasets import OpXORTarget
-from deeplearning.data.integrationdatasets import OpRandomUnitSquare
-from deeplearning.data.wrappers import OpArrayPiper
+from deeplearning.data.integrationdatasets import OpRandomCorners
+from deeplearning.data.integrationdatasets import OpFeatures
 
 from deeplearning.tools.extensions import WeightKeeper
 from deeplearning.tools.extensions import ProgressMonitor
+from deeplearning.tools.extensions import BuildableTrainExtension
 
 from deeplearning.workflow import RegressionWorkflow
 from deeplearning.split import OpTrainTestSplit
 from deeplearning.classifiers import OpMLPTrain
 from deeplearning.classifiers import OpMLPPredict
 from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp_init import NormalWeightInitializer
+from deeplearning.classifiers.mlp_init import StandardWeightInitializer
 from deeplearning.classifiers.mlp_init import PCAWeightInitializer
 
 
-num_epochs = 10
+num_epochs = 200
 num_plots = 6
 
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
-config = {"source": {"class": OpRandomUnitSquare,
+
+def update_line(num, data, line):
+    line.set_data(data[..., :num])
+    return line,
+
+fig1 = plt.figure()
+
+data = np.random.rand(2, 25)
+l, = plt.plot([], [], 'r-')
+plt.xlim(0, 1)
+plt.ylim(0, 1)
+plt.xlabel('x')
+plt.title('test')
+line_ani = animation.FuncAnimation(fig1, update_line, 25, fargs=(data, l),
+                                   interval=50, blit=True)
+#line_ani.save('lines.mp4')
+
+fig2 = plt.figure()
+
+x = np.arange(-9, 10)
+y = np.arange(-9, 10).reshape(-1, 1)
+base = np.hypot(x, y)
+ims = []
+for add in np.arange(15):
+    ims.append((plt.pcolor(x, y, base + add, norm=plt.Normalize(0, 30)),))
+
+im_ani = animation.ArtistAnimation(fig2, ims, interval=50, repeat_delay=3000,
+                                   blit=True)
+#im_ani.save('im.mp4', metadata={'artist':'Guido'})
+
+plt.show()
+"""
+
+
+class PlotExtension(BuildableTrainExtension):
+    def on_monitor(self, model, dataset, algorithm):
+        """
+        save the model's weights
+        """
+        A, b = model.layers[0].get_param_values()
+        self.adjust_plot(A, b)
+
+    def setup(self, model, dataset, algorithm):
+        """
+        initialize the weight list
+        """
+        self._fig = plt.figure()
+        self._stills = []
+        t = np.linspace(0, 1, 25)
+        X, Y = np.meshgrid(t, t)
+        x = X.reshape((-1, 1))
+        y = Y.reshape((-1, 1))
+        v = np.concatenate((x, y), axis=1).T
+        self._v = v
+
+    def adjust_plot(self, A, b):
+        w = np.dot(A, self._v) + b[:, np.newaxis]
+        w = 1./(1 + np.exp(-w))
+        p = plt.plot(w[0, :], w[1, :], 'k.')
+
+        self._stills.append(p)
+
+    def get_animation(self):
+        return animation.ArtistAnimation(self._fig, self._stills, interval=100,
+                                         repeat_delay=500, blit=True)
+        
+
+config = {"source": {"class": OpRandomCorners,
                      "shape": (10000, 2)},
-          "features": {"class": OpArrayPiper},
+          "features": {"class": OpFeatures},
           "target": {"class": OpXORTarget,},
           "split": {"class": OpTrainTestSplit},
           "train": {"class": OpMLPTrain,
                     "max_epochs": num_epochs,
                     #"weight_initializer": ({"class": NormalWeightInitializer},
+                    #"weight_initializer": ({"class": PCAWeightInitializer},
+                    #                       {"class": LeastSquaresWeightInitializer}),
                     "weight_initializer": ({"class": PCAWeightInitializer},
-                                           {"class": LeastSquaresWeightInitializer}),
+                                           {"class": StandardWeightInitializer}),
                     "learning_rate": .2,
                     "layer_sizes": (2,),
                     "layer_classes": (mlp.Sigmoid,)},
           "predict": {"class": OpMLPPredict}}
 
-def hyperplane(X, Y, w):
-    a = w[0]
-    b = w[1]
-
-    Z = X*a[0] + Y*a[1] + b
-    return Z
-
 
 def main():
-    n = 10
-    t = np.linspace(0, 1, n)
-    X, Y = np.meshgrid(t, t)
-    data = np.concatenate((X.reshape(n**2, 1), Y.reshape(n**2, 1)), axis=1)
-    data = data.astype(np.float32)
-    target = 1 - np.square(1 - data.sum(axis=1))
 
     ext1 = {"class": WeightKeeper}
     ext2 = {"class": ProgressMonitor}
-    config["train"]["extensions"] = (ext1, ext2)
+    ext3 = {"class": PlotExtension}
+    config["train"]["extensions"] = (ext1, ext2, ext3)
     wd = tempfile.mkdtemp(prefix="xor_")
     w = RegressionWorkflow.build(config, workingdir=wd)
     w.run()
 
-    wk = filter(lambda obj: isinstance(obj, WeightKeeper),
-                w._train.extensions_used)[0]
-    weights = wk.get_weights()
+    plt_ext = filter(lambda x: isinstance(x, PlotExtension),
+                     w._train.extensions_used)[0]
+    ani = plt_ext.get_animation()
+    # ani.save('im.mp4', metadata={'artist':'Guido'})
 
-    mlp.Layer
-    model = mlp.MLP([mlp.Sigmoid(dim=2, irange=.1, layer_name="a")], nvis=2)
-
-    from matplotlib import pyplot as plt
-    from matplotlib import cm
-    from mpl_toolkits.mplot3d import Axes3D
-    fig = plt.figure()
-    axes = fig.add_subplot(111, projection='3d')
-    plt.hold(True)
-
-    for i, w in enumerate(weights):
-        if i < num_plots - 1 or i == num_epochs - 1:
-            model.layers[0].set_param_values(w[0:2])
-            shared = theano.shared(data)
-            y = model.fprop(shared).eval()
-            axes.plot3D(y[:, 0], y[:, 1], target, '.', label="{}".format(i+1))
-    Z = hyperplane(X, Y, w[2:])
-    axes.plot_surface(X, Y, Z, rstride=1, cstride=1, linewidth=0,
-                      facecolors=cm.jet(Z), shade=False)
-    plt.legend(loc="lower left")
-    plt.axis([-.1, 1.1, -.1, 1.1])
     plt.show()
+
 
 if __name__ == "__main__":
     main()

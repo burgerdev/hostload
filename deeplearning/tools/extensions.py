@@ -1,6 +1,6 @@
 """
 Extensions for pylearn2 training algorithms. Those are either reimplemented to
-suit the execution model of this package, or new ones for recorting metrics.
+suit the execution model of this package, or new ones for recording metrics.
 """
 
 
