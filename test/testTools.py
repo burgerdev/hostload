@@ -9,17 +9,17 @@ from lazyflow.graph import Graph
 from lazyflow.operators import Operator
 from lazyflow.operators import OpArrayPiper
 
-from deeplearning.tools import OpArrayPiper as OpBuildableArrayPiper
+from tsdl.tools import OpArrayPiper as OpBuildableArrayPiper
 
-from deeplearning.tools import listify_dict
-from deeplearning.tools import expand_dict
-from deeplearning.tools import build_operator
+from tsdl.tools import listify_dict
+from tsdl.tools import expand_dict
+from tsdl.tools import build_operator
 
-from deeplearning.tools.serialization import dumps
-from deeplearning.tools.serialization import loads
+from tsdl.tools.serialization import dumps
+from tsdl.tools.serialization import loads
 
-from deeplearning.tools.generic import OpNormalize
-from deeplearning.tools.generic import OpChangeDtype
+from tsdl.tools.generic import OpNormalize
+from tsdl.tools.generic import OpChangeDtype
 
 
 class TestTools(unittest.TestCase):
@@ -90,7 +90,7 @@ class TestTools(unittest.TestCase):
 
     def testSerialization(self):
         from lazyflow.operator import Operator
-        from deeplearning.data import OpPickleCache
+        from tsdl.data import OpPickleCache
         d = {"class": Operator,
              "cache": {"class": OpPickleCache},
              "answer": 42,

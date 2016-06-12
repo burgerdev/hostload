@@ -4,10 +4,10 @@ base classes that define training and prediction operator interfaces
 
 import numpy as np
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
-from deeplearning.tools import SubRegion
+from tsdl.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import SubRegion
 
-from deeplearning.tools import Buildable
+from tsdl.tools import Buildable
 
 
 class OpTrain(Operator, Buildable):
@@ -22,7 +22,7 @@ class OpTrain(Operator, Buildable):
     be used with the appropriate OpPredict.
 
     Don't forget to use the mix-ins
-        deeplearning.tools.[Classification|Regression]
+        tsdl.tools.[Classification|Regression]
     to indicate the supported types of training.
     """
 
@@ -54,7 +54,7 @@ class OpPredict(Operator, Buildable):
     Output should have the same shape and dtype as Target.
 
     Don't forget to use the mix-ins
-        deeplearning.tools.[Classification|Regression]
+        tsdl.tools.[Classification|Regression]
     to indicate the supported types of prediction.
     """
 

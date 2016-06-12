@@ -9,21 +9,21 @@ import theano
 
 from pylearn2.models import mlp
 
-from deeplearning.data.integrationdatasets import OpXORTarget
-from deeplearning.data.integrationdatasets import OpRandomCorners
-from deeplearning.data.integrationdatasets import OpFeatures
+from tsdl.data.integrationdatasets import OpXORTarget
+from tsdl.data.integrationdatasets import OpRandomCorners
+from tsdl.data.integrationdatasets import OpFeatures
 
-from deeplearning.tools.extensions import WeightKeeper
-from deeplearning.tools.extensions import ProgressMonitor
-from deeplearning.tools.extensions import BuildableTrainExtension
+from tsdl.tools.extensions import WeightKeeper
+from tsdl.tools.extensions import ProgressMonitor
+from tsdl.tools.extensions import BuildableTrainExtension
 
-from deeplearning.workflow import RegressionWorkflow
-from deeplearning.split import OpTrainTestSplit
-from deeplearning.classifiers import OpMLPTrain
-from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp_init import StandardWeightInitializer
-from deeplearning.classifiers.mlp_init import PCAWeightInitializer
+from tsdl.workflow import RegressionWorkflow
+from tsdl.split import OpTrainTestSplit
+from tsdl.classifiers import OpMLPTrain
+from tsdl.classifiers import OpMLPPredict
+from tsdl.classifiers.mlp_init import LeastSquaresWeightInitializer
+from tsdl.classifiers.mlp_init import StandardWeightInitializer
+from tsdl.classifiers.mlp_init import PCAWeightInitializer
 
 
 num_epochs = 200

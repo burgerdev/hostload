@@ -4,19 +4,19 @@ import unittest
 import tempfile
 import shutil
 
-from deeplearning.batch import run_batch
+from tsdl.batch import run_batch
 
-from deeplearning.classifiers import OpSVMTrain
-from deeplearning.classifiers import OpSVMPredict
+from tsdl.classifiers import OpSVMTrain
+from tsdl.classifiers import OpSVMPredict
 
-from deeplearning.data.integrationdatasets import OpShuffledLinspace
-from deeplearning.data.integrationdatasets import OpTarget
-from deeplearning.data.integrationdatasets import OpFeatures
+from tsdl.data.integrationdatasets import OpShuffledLinspace
+from tsdl.data.integrationdatasets import OpTarget
+from tsdl.data.integrationdatasets import OpFeatures
 
-from deeplearning.tools import OpArrayPiper
+from tsdl.tools import OpArrayPiper
 
-from deeplearning.report import OpClassificationReport
-from deeplearning.report import OpRegressionReport
+from tsdl.report import OpClassificationReport
+from tsdl.report import OpRegressionReport
 
 
 class TestBatch(unittest.TestCase):

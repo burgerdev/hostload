@@ -6,14 +6,14 @@ import vigra
 
 from lazyflow.graph import Graph
 
-from deeplearning.features import OpRawWindowed
-from deeplearning.features import OpDiff
-from deeplearning.features import OpMean
-from deeplearning.features import OpLinearWeightedMean
-from deeplearning.features import OpExponentialFilter
-from deeplearning.features import OpFairness
-from deeplearning.features import OpRecent
-from deeplearning.features import OpGaussianSmoothing
+from tsdl.features import OpRawWindowed
+from tsdl.features import OpDiff
+from tsdl.features import OpMean
+from tsdl.features import OpLinearWeightedMean
+from tsdl.features import OpExponentialFilter
+from tsdl.features import OpFairness
+from tsdl.features import OpRecent
+from tsdl.features import OpGaussianSmoothing
 
 
 class TestOpMean(unittest.TestCase):

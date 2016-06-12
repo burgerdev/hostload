@@ -17,33 +17,33 @@ else:
 from pylearn2.models import mlp
 
 
-from deeplearning.data.integrationdatasets import OpMackeyGlass
+from tsdl.data.integrationdatasets import OpMackeyGlass
 
 
 # workflow
-from deeplearning.workflow import Workflow
+from tsdl.workflow import Workflow
 
 # features
-from deeplearning.features import OpRecent
-from deeplearning.targets import OpExponentiallySegmentedPattern
-from deeplearning.split import OpTrainTestSplit
-from deeplearning.report import OpRegressionReport
+from tsdl.features import OpRecent
+from tsdl.targets import OpExponentiallySegmentedPattern
+from tsdl.split import OpTrainTestSplit
+from tsdl.report import OpRegressionReport
 
 # classifiers
-from deeplearning.classifiers import OpSVMTrain
-from deeplearning.classifiers import OpSVMPredict
-from deeplearning.classifiers import OpMLPTrain
-from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp_init import PCAWeightInitializer
-from deeplearning.classifiers.mlp_init import StandardWeightInitializer
+from tsdl.classifiers import OpSVMTrain
+from tsdl.classifiers import OpSVMPredict
+from tsdl.classifiers import OpMLPTrain
+from tsdl.classifiers import OpMLPPredict
+from tsdl.classifiers.mlp_init import LeastSquaresWeightInitializer
+from tsdl.classifiers.mlp_init import PCAWeightInitializer
+from tsdl.classifiers.mlp_init import StandardWeightInitializer
 
 # caches
-from deeplearning.data import OpPickleCache
-from deeplearning.data import OpHDF5Cache
+from tsdl.data import OpPickleCache
+from tsdl.data import OpHDF5Cache
 
 # train extensions
-from deeplearning.tools.extensions import ProgressMonitor
+from tsdl.tools.extensions import ProgressMonitor
 
 
 # options available for initialization

@@ -15,20 +15,20 @@ from lazyflow.operators.generic import OpSingleChannelSelector
 from lazyflow.operators.generic import OpMultiArrayStacker
 from lazyflow.operators.valueProviders import OpValueCache
 
-from deeplearning.targets import OpExponentiallySegmentedPattern
-from deeplearning.tools.generic import OpNormalize
-from deeplearning.targets import OpDiscretize
-from deeplearning.targets import OpClassFromOneHot
+from tsdl.targets import OpExponentiallySegmentedPattern
+from tsdl.tools.generic import OpNormalize
+from tsdl.targets import OpDiscretize
+from tsdl.targets import OpClassFromOneHot
 
-from deeplearning.features import OpMean
-from deeplearning.features import OpLinearWeightedMean
-from deeplearning.features import OpFairness
-from deeplearning.features import OpRawWindowed
+from tsdl.features import OpMean
+from tsdl.features import OpLinearWeightedMean
+from tsdl.features import OpFairness
+from tsdl.features import OpRawWindowed
 
-from deeplearning.split import OpTrainTestSplit
+from tsdl.split import OpTrainTestSplit
 
-from deeplearning.classifiers import OpSVMTrain
-from deeplearning.classifiers import OpSVMPredict
+from tsdl.classifiers import OpSVMTrain
+from tsdl.classifiers import OpSVMPredict
 
 
 class OpTarget(Operator):

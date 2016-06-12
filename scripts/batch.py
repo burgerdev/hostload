@@ -1,35 +1,35 @@
 
 import tempfile
 
-from deeplearning.batch import run_batch
+from tsdl.batch import run_batch
 
-from deeplearning.classifiers import OpMLPTrain
-from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp_init import PCAWeightInitializer
+from tsdl.classifiers import OpMLPTrain
+from tsdl.classifiers import OpMLPPredict
+from tsdl.classifiers.mlp_init import LeastSquaresWeightInitializer
+from tsdl.classifiers.mlp_init import PCAWeightInitializer
 
-from deeplearning.data import OpStreamingHdf5Reader
+from tsdl.tools import OpStreamingHdf5Reader
 
-from deeplearning.features import OpRecent
-from deeplearning.features import OpSimpleCombiner
-from deeplearning.features import OpChain
-from deeplearning.features import OpExponentialFilter
+from tsdl.features import OpRecent
+from tsdl.features import OpSimpleCombiner
+from tsdl.features import OpChain
+from tsdl.features import OpExponentialFilter
 
-from deeplearning.report import OpRegressionReport
+from tsdl.report import OpRegressionReport
 
-from deeplearning.targets import OpExponentiallySegmentedPattern
+from tsdl.targets import OpExponentiallySegmentedPattern
 
-from deeplearning.tools.generic import OpChangeDtype
-from deeplearning.tools.extensions import ProgressMonitor
-from deeplearning.tools.fragile_extensions import SignalExtension
+from tsdl.tools.generic import OpChangeDtype
+from tsdl.tools.extensions import ProgressMonitor
+from tsdl.tools.fragile_extensions import SignalExtension
 
 from pylearn2.models import mlp
 
 
-window_size = 32
+window_size = 64
 
 feature0 = {"class": OpExponentialFilter,
-            "window_size": 32}
+            "window_size": 128}
 
 feature1 = {"class": OpSimpleCombiner,
             "operators": ({"class": OpRecent, "window_size": window_size},
@@ -39,6 +39,7 @@ features = {"class": OpChain, "operators": (feature0, feature1)}
 
 initializer_choices = ({"class": PCAWeightInitializer},
                        {"class": PCAWeightInitializer},
+                       {"class": PCAWeightInitializer},
                        {"class": LeastSquaresWeightInitializer})
 
 extensions = ({"class": ProgressMonitor, "channel": "train_objective"},
@@ -47,12 +48,12 @@ extensions = ({"class": ProgressMonitor, "channel": "train_objective"},
 
 config = {"features": features,
           "target": {"class": OpExponentiallySegmentedPattern,
-                     "baseline_size": 8,
+                     "baseline_size": 20,
                      "num_segments": 1},
           "train": {"class": OpMLPTrain,
-                    "layer_classes": (mlp.Sigmoid, mlp.Sigmoid,),
-                    "layer_sizes": (24, 16),
-                    "max_epochs": 300,  # 10k -> 3:11:39
+                    "layer_classes": (mlp.Sigmoid, mlp.Sigmoid, mlp.Sigmoid,),
+                    "layer_sizes": (36, 24, 12),
+                    "max_epochs": 20000,  # 10k -> 3:11:39
                     "terminate_early": False,
                     "learning_rate": 0.35,
                     "weight_initializer": initializer_choices,
@@ -85,7 +86,7 @@ if __name__ == "__main__":
                         "internal_path": internal}
 
     if args.workingdir is None:
-        args.workingdir = tempfile.mkdtemp(prefix="deeplearning_batch_")
+        args.workingdir = tempfile.mkdtemp(prefix="tsdl_batch_")
         print("created temporary working dir: {}".format(args.workingdir))
 
     main(args.workingdir)

@@ -4,27 +4,27 @@ import unittest
 import shutil
 import tempfile
 
-from deeplearning.workflow import Workflow
-from deeplearning.workflow import RegressionWorkflow
-from deeplearning.classifiers import OpStateTrain
-from deeplearning.classifiers import OpStatePredict
-from deeplearning.classifiers import OpSVMTrain
-from deeplearning.classifiers import OpSVMPredict
-from deeplearning.classifiers import OpRFTrain
-from deeplearning.classifiers import OpRFPredict
-from deeplearning.classifiers import OpDeepTrain
-from deeplearning.classifiers import OpMLPTrain
-from deeplearning.classifiers import OpMLPPredict
-from deeplearning.report import OpClassificationReport
-from deeplearning.report import OpRegressionReport
-from deeplearning.tools import IncompatibleTargets
+from tsdl.workflow import Workflow
+from tsdl.workflow import RegressionWorkflow
+from tsdl.classifiers import OpStateTrain
+from tsdl.classifiers import OpStatePredict
+from tsdl.classifiers import OpSVMTrain
+from tsdl.classifiers import OpSVMPredict
+from tsdl.classifiers import OpRFTrain
+from tsdl.classifiers import OpRFPredict
+from tsdl.classifiers import OpDeepTrain
+from tsdl.classifiers import OpMLPTrain
+from tsdl.classifiers import OpMLPPredict
+from tsdl.report import OpClassificationReport
+from tsdl.report import OpRegressionReport
+from tsdl.tools import IncompatibleTargets
 
 from pylearn2.models import mlp
 
-from deeplearning.data.integrationdatasets import OpShuffledLinspace
-from deeplearning.data.integrationdatasets import OpTarget
-from deeplearning.data.integrationdatasets import OpRegTarget
-from deeplearning.data.integrationdatasets import OpFeatures
+from tsdl.data.integrationdatasets import OpShuffledLinspace
+from tsdl.data.integrationdatasets import OpTarget
+from tsdl.data.integrationdatasets import OpRegTarget
+from tsdl.data.integrationdatasets import OpFeatures
 
 
 config = {"source": {"class": OpShuffledLinspace,

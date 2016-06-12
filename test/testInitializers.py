@@ -4,11 +4,11 @@ import unittest
 import numpy as np
 import vigra
 
-from deeplearning.classifiers.mlp_init import PCAWeightInitializer
-from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp_init import OpForwardLayers
-from deeplearning.classifiers.mlp_init import OptimalInitializer
-from deeplearning.classifiers.mlp_init import GridInitializer
+from tsdl.classifiers.mlp_init import PCAWeightInitializer
+from tsdl.classifiers.mlp_init import LeastSquaresWeightInitializer
+from tsdl.classifiers.mlp_init import OpForwardLayers
+from tsdl.classifiers.mlp_init import OptimalInitializer
+from tsdl.classifiers.mlp_init import GridInitializer
 
 from lazyflow.graph import Graph
 

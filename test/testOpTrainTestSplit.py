@@ -6,7 +6,7 @@ import vigra
 
 from lazyflow.graph import Graph
 
-from deeplearning.split import OpTrainTestSplit
+from tsdl.split import OpTrainTestSplit
 
 
 class TestOpTrainTestSplit(unittest.TestCase):

@@ -12,28 +12,28 @@ else:
 
 from pylearn2.models import mlp
 
-from deeplearning.workflow import Workflow
-from deeplearning.split import OpTrainTestSplit
-from deeplearning.classifiers import OpMLPTrain
-from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers.mlp_init import LeastSquaresWeightInitializer
-from deeplearning.classifiers.mlp_init import PCAWeightInitializer
-from deeplearning.data import OpPickleCache
-from deeplearning.data import OpHDF5Cache
-from deeplearning.tools import OpStreamingHdf5Reader
-from deeplearning.features import OpRecent
-from deeplearning.report import OpRegressionReport
-from deeplearning.targets import OpExponentiallySegmentedPattern
+from tsdl.workflow import Workflow
+from tsdl.split import OpTrainTestSplit
+from tsdl.classifiers import OpMLPTrain
+from tsdl.classifiers import OpMLPPredict
+from tsdl.classifiers.mlp_init import LeastSquaresWeightInitializer
+from tsdl.classifiers.mlp_init import PCAWeightInitializer
+from tsdl.data import OpPickleCache
+from tsdl.data import OpHDF5Cache
+from tsdl.tools import OpStreamingHdf5Reader
+from tsdl.features import OpRecent
+from tsdl.report import OpRegressionReport
+from tsdl.targets import OpExponentiallySegmentedPattern
 
-from deeplearning.tools.extensions import ProgressMonitor
-from deeplearning.tools.extensions import WeightKeeper
-from deeplearning.tools.extensions import MonitorBasedSaveBest
+from tsdl.tools.extensions import ProgressMonitor
+from tsdl.tools.extensions import WeightKeeper
+from tsdl.tools.extensions import MonitorBasedSaveBest
 
-from deeplearning.data.integrationdatasets import OpNoisySine
-from deeplearning.data.integrationdatasets import OpRandomUnitSquare
-from deeplearning.data.integrationdatasets import OpMackeyGlass
-from deeplearning.data.integrationdatasets import OpNormTarget
-from deeplearning.data.integrationdatasets import OpFeatures
+from tsdl.data.integrationdatasets import OpNoisySine
+from tsdl.data.integrationdatasets import OpRandomUnitSquare
+from tsdl.data.integrationdatasets import OpMackeyGlass
+from tsdl.data.integrationdatasets import OpNormTarget
+from tsdl.data.integrationdatasets import OpFeatures
 
 
 exts = ({"class": ProgressMonitor, "channel": "train_objective"},

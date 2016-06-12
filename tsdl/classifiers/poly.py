@@ -11,7 +11,7 @@ from lazyflow.operator import InputSlot
 from .abcs import OpTrain
 from .abcs import OpPredict
 
-from deeplearning.tools import Regression
+from tsdl.tools import Regression
 
 
 class OpPolynomialTrain(OpTrain, Regression):

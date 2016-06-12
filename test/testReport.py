@@ -8,11 +8,11 @@ import numpy as np
 
 from lazyflow.graph import Graph
 
-from deeplearning.report import OpClassificationReport
-from deeplearning.report import OpRegressionReport
-from deeplearning.split import SplitTypes
+from tsdl.report import OpClassificationReport
+from tsdl.report import OpRegressionReport
+from tsdl.split import SplitTypes
 
-from deeplearning.tools.serialization import loads
+from tsdl.tools.serialization import loads
 
 
 class TestReport(unittest.TestCase):

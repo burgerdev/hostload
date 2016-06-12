@@ -75,8 +75,8 @@ def default_mackey_glass_series():
 import vigra
 from matplotlib import pyplot as plt
 
-from deeplearning.targets import OpExponentiallySegmentedPattern
-from deeplearning.tools import Graph
+from tsdl.targets import OpExponentiallySegmentedPattern
+from tsdl.tools import Graph
 
 
 def main():

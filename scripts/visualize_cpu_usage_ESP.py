@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 from lazyflow.graph import Graph
 
-from deeplearning.targets import OpExponentiallySegmentedPattern
+from tsdl.targets import OpExponentiallySegmentedPattern
 
 
 def run(args):

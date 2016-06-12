@@ -6,10 +6,10 @@ import vigra
 
 from lazyflow.graph import Graph
 
-from deeplearning.classifiers import OpStateTrain
-from deeplearning.classifiers import OpStatePredict
-from deeplearning.classifiers import OpStateTrainRegression
-from deeplearning.classifiers import OpStatePredictRegression
+from tsdl.classifiers import OpStateTrain
+from tsdl.classifiers import OpStatePredict
+from tsdl.classifiers import OpStateTrainRegression
+from tsdl.classifiers import OpStatePredictRegression
 
 
 class TestOpState(unittest.TestCase):

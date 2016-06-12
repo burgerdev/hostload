@@ -6,12 +6,12 @@ import vigra
 
 from lazyflow.graph import Graph
 
-from deeplearning.targets import OpExponentiallySegmentedPattern
+from tsdl.targets import OpExponentiallySegmentedPattern
 
-from deeplearning.targets import OpDiscretize
-from deeplearning.targets import OpClassFromOneHot
+from tsdl.targets import OpDiscretize
+from tsdl.targets import OpClassFromOneHot
 
-from deeplearning.targets import OpHostloadTarget
+from tsdl.targets import OpHostloadTarget
 
 
 class TestOpExponentiallySegmentedpattern(unittest.TestCase):

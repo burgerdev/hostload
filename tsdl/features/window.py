@@ -10,8 +10,8 @@ no information from the future leaks into the current feature.
 import numpy as np
 import vigra
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
-from deeplearning.tools import SubRegion
+from tsdl.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import SubRegion
 
 
 class OpWindow(Operator):

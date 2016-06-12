@@ -11,8 +11,8 @@ import numpy as np
 import vigra
 
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
-from deeplearning.tools import SubRegion
+from tsdl.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import SubRegion
 
 
 class SplitTypes(object):  # pylint: disable=R0903,W0232

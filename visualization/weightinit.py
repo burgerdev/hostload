@@ -8,13 +8,13 @@ from lazyflow.graph import Graph
 from pylearn2.models.mlp import MLP
 from pylearn2.models.mlp import Sigmoid
 
-from deeplearning.features import OpRecent
+from tsdl.features import OpRecent
 
-from deeplearning.classifiers.mlp import PCAWeightInitializer
-from deeplearning.classifiers.mlp import NormalWeightInitializer
-from deeplearning.classifiers.mlp import LeastSquaresWeightInitializer
+from tsdl.classifiers.mlp import PCAWeightInitializer
+from tsdl.classifiers.mlp import NormalWeightInitializer
+from tsdl.classifiers.mlp import LeastSquaresWeightInitializer
 
-from deeplearning.data.integrationdatasets import OpNoisySine
+from tsdl.data.integrationdatasets import OpNoisySine
 
 
 def plot_hyperplane(axes, a, b, *args, **kwargs):

@@ -8,12 +8,12 @@ purposes. The classes in here should not be relied upon in production mode.
 import numpy as np
 import vigra
 
-from deeplearning.tools import OpArrayPiperWithAccessCount
-from deeplearning.tools import OpReorderAxes
-from deeplearning.tools import OutputSlot
+from tsdl.tools import OpArrayPiperWithAccessCount
+from tsdl.tools import OpReorderAxes
+from tsdl.tools import OutputSlot
 
-from deeplearning.tools import Classification
-from deeplearning.tools import Regression
+from tsdl.tools import Classification
+from tsdl.tools import Regression
 
 from .rk4 import default_mackey_glass_series
 

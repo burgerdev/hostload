@@ -11,15 +11,17 @@ import cPickle as pkl
 import warnings
 
 import numpy as np
+import vigra
 
-from deeplearning.tools.serialization import loads
-from deeplearning.workflow import Workflow
+from tsdl.tools.serialization import loads
+from tsdl.workflow import Workflow
 
 try:
     from matplotlib import pyplot as plt
 except ImportError:
     warnings.warn("can't plot without matplotlib")
 
+fontsize = 16
 
 def plot_regression(workflow, dir_):
     classifier_file = os.path.join(dir_,
@@ -34,13 +36,18 @@ def plot_regression(workflow, dir_):
         "expected 1d for regression"
     target = workflow.Target[:].wait().squeeze()
     prediction = workflow.Prediction[:].wait().squeeze()
+    inp = workflow.Features[:].wait().squeeze()[:, 0]
+    # inp = vigra.taggedView(inp, workflow.Features.axistags).withAxis("tc")
 
     plt.figure()
-    plt.plot(target, label="ground truth")
-    plt.plot(prediction, label="prediction")
-    plt.xlabel("time")
-    plt.ylabel("target")
-    plt.legend()
+    x = np.arange(len(target))*1.0
+    x /= 20*24
+    plt.plot(x, target*100, label="ground truth")
+    plt.plot(x, prediction*100, label="prediction")
+    plt.plot(x, inp*100, label="current state")
+    plt.xlabel("day", fontdict={"fontsize": fontsize})
+    plt.ylabel("mean cluster usage [percent]", fontdict={"fontsize": fontsize})
+    plt.legend(loc="upper left", prop={'size': fontsize})
 
 
 def plot_convergence(dir_):

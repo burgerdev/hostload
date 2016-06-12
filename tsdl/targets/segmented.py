@@ -4,12 +4,12 @@ provides the "exponentially segmented pattern" target proposed by Kondo et.al.
 import numpy as np
 import vigra
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
-from deeplearning.tools import SubRegion
-from deeplearning.tools import OpReorderAxes
+from tsdl.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import SubRegion
+from tsdl.tools import OpReorderAxes
 
-from deeplearning.tools import Regression
-from deeplearning.tools import Buildable
+from tsdl.tools import Regression
+from tsdl.tools import Buildable
 
 
 class OpExponentiallySegmentedPattern(Operator, Regression, Buildable):

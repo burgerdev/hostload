@@ -9,11 +9,11 @@ import os
 import logging
 import traceback
 
-from deeplearning.tools import listify_dict
-from deeplearning.tools import expand_dict
-from deeplearning.tools import IncompatibleTargets
+from tsdl.tools import listify_dict
+from tsdl.tools import expand_dict
+from tsdl.tools import IncompatibleTargets
 
-from deeplearning.workflow import Workflow
+from tsdl.workflow import Workflow
 
 
 LOGGER = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ def run_batch(config, workingdir, continue_on_failure=True):
     """
     run a batch configuration inspecified directory
 
-    * config is a deeplearning.workflow.Workflow configuration with lists where
+    * config is a tsdl.workflow.Workflow configuration with lists where
       multiple parameters should be run
       e.g.: config = {'a': 0, 'b': [1, 2]} results in 'b' mapping to 1 in the
             first run, to 2 in the second run

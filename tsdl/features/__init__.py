@@ -2,7 +2,7 @@
 module for time series features
 
 Features use the `lazyflow.operator.Operator` interface and are intended for
-use in a `deeplearning.workflow.Workflow`.
+use in a `tsdl.workflow.Workflow`.
 """
 
 from .window import OpRawWindowed

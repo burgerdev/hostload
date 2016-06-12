@@ -10,18 +10,18 @@ import datetime
 
 from lazyflow.graph import Graph
 
-from deeplearning.tools.serialization import dumps
-from deeplearning.tools import Classification
-from deeplearning.tools import Regression
-from deeplearning.tools import IncompatibleTargets
-from deeplearning.tools import Buildable
-from deeplearning.tools import build_operator
+from tsdl.tools.serialization import dumps
+from tsdl.tools import Classification
+from tsdl.tools import Regression
+from tsdl.tools import IncompatibleTargets
+from tsdl.tools import Buildable
+from tsdl.tools import build_operator
 
-from deeplearning.data.caches import OpPickleCache
-from deeplearning.data.caches import OpHDF5Cache
-from deeplearning.split import OpTrainTestSplit
+from tsdl.data.caches import OpPickleCache
+from tsdl.data.caches import OpHDF5Cache
+from tsdl.split import OpTrainTestSplit
 
-from deeplearning.report import OpRegressionReport
+from tsdl.report import OpRegressionReport
 
 
 # we use lazyflow slot notation, ignore pylint's hint that they should not
@@ -62,7 +62,7 @@ class Workflow(Buildable):
                     else:
                         raise
             else:
-                workingdir = tempfile.mkdtemp(prefix="deeplearning_")
+                workingdir = tempfile.mkdtemp(prefix="tsdl_")
 
         workflow = cls(workingdir=workingdir, config=config)
 

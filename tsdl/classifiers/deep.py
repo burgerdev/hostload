@@ -7,8 +7,8 @@ from itertools import repeat
 
 from .abcs import OpTrain
 
-from deeplearning.data import OpDataset
-from deeplearning.tools import Classification
+from tsdl.data import OpDataset
+from tsdl.tools import Classification
 
 from lazyflow.operator import InputSlot
 

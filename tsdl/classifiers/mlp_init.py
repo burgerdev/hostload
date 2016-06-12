@@ -8,9 +8,9 @@ import theano
 from lazyflow.operator import Operator, InputSlot, OutputSlot
 
 
-from deeplearning.tools import Buildable
-from deeplearning.tools import get_rng
-from deeplearning.tools import build_operator
+from tsdl.tools import Buildable
+from tsdl.tools import get_rng
+from tsdl.tools import build_operator
 
 try:
     from scipy import cluster

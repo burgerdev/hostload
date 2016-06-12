@@ -14,13 +14,13 @@ from collections import OrderedDict
 
 import numpy as np
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import Operator, InputSlot, OutputSlot
 
-from deeplearning.tools.serialization import dumps
-from deeplearning.tools import Classification
-from deeplearning.tools import Regression
-from deeplearning.tools import Buildable
-from deeplearning.split import SplitTypes
+from tsdl.tools.serialization import dumps
+from tsdl.tools import Classification
+from tsdl.tools import Regression
+from tsdl.tools import Buildable
+from tsdl.split import SplitTypes
 
 
 class _DictReport(object):

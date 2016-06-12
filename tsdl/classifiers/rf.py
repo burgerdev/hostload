@@ -4,7 +4,7 @@ import numpy as np
 from .abcs import OpTrain
 from .abcs import OpPredict
 
-from deeplearning.tools import Classification
+from tsdl.tools import Classification
 
 from lazyflow.classifiers import VigraRfLazyflowClassifierFactory
 from lazyflow.classifiers import VigraRfLazyflowClassifier

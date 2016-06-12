@@ -8,7 +8,7 @@ from lazyflow.operators import OpReorderAxes
 from .converters import OpDiscretize
 from .segmented import OpExponentiallySegmentedPattern
 
-from deeplearning.tools import Buildable
+from tsdl.tools import Buildable
 
 
 class OpHostloadTarget(Operator, Buildable):

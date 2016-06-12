@@ -5,7 +5,7 @@ Operators that convert targets in some way.
 import numpy as np
 import vigra
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import Operator, InputSlot, OutputSlot
 
 
 class OpDiscretize(Operator):

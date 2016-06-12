@@ -8,9 +8,9 @@ from sklearn.svm import SVR
 from .abcs import OpTrain
 from .abcs import OpPredict
 
-from deeplearning.tools import SubRegion
-from deeplearning.tools import Classification
-from deeplearning.tools import Regression
+from tsdl.tools import SubRegion
+from tsdl.tools import Classification
+from tsdl.tools import Regression
 
 
 class OpSVMTrain(OpTrain, Regression, Classification):

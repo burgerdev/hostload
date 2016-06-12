@@ -8,13 +8,13 @@ import theano
 
 from itertools import repeat
 
-from deeplearning.data import OpDataset
-from deeplearning.tools import build_operator
-from deeplearning.tools import Classification
-from deeplearning.tools import Regression
-from deeplearning.tools import IncompatibleDataset
-from deeplearning.tools.extensions import PersistentTrainExtension
-from deeplearning.tools.extensions import MonitorBasedSaveBest
+from tsdl.data import OpDataset
+from tsdl.tools import build_operator
+from tsdl.tools import Classification
+from tsdl.tools import Regression
+from tsdl.tools import IncompatibleDataset
+from tsdl.tools.extensions import PersistentTrainExtension
+from tsdl.tools.extensions import MonitorBasedSaveBest
 
 from .abcs import OpTrain
 from .abcs import OpPredict

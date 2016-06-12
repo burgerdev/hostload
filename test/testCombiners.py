@@ -5,14 +5,14 @@ import numpy as np
 import vigra
 
 from lazyflow.graph import Graph
-from deeplearning.tools import OpArrayPiper
+from tsdl.tools import OpArrayPiper
 
-from deeplearning.features import OpSimpleCombiner
-from deeplearning.features import OpChain
-from deeplearning.features import OpFairness
-from deeplearning.features import OpMean
+from tsdl.features import OpSimpleCombiner
+from tsdl.features import OpChain
+from tsdl.features import OpFairness
+from tsdl.features import OpMean
 
-from deeplearning.tools.generic import OpChangeDtype
+from tsdl.tools.generic import OpChangeDtype
 
 
 class TestCombiners(unittest.TestCase):

@@ -8,21 +8,21 @@ from lazyflow.graph import Graph
 from lazyflow.utility.testing import OpArrayPiperWithAccessCount
 from lazyflow.operators import OpReorderAxes
 
-from deeplearning.workflow import Workflow
-from deeplearning.split import OpTrainTestSplit
-from deeplearning.classifiers import OpStateTrain
-from deeplearning.classifiers import OpStatePredict
-from deeplearning.classifiers import OpSVMTrain
-from deeplearning.classifiers import OpSVMPredict
-from deeplearning.classifiers import OpRFTrain
-from deeplearning.classifiers import OpRFPredict
-from deeplearning.classifiers import OpMLPTrain
-from deeplearning.classifiers import OpMLPPredict
-from deeplearning.classifiers import OpDeepTrain
-from deeplearning.data import OpPickleCache
-from deeplearning.data import OpHDF5Cache
-from deeplearning.report import OpClassificationReport
-from deeplearning.tools import Classification
+from tsdl.workflow import Workflow
+from tsdl.split import OpTrainTestSplit
+from tsdl.classifiers import OpStateTrain
+from tsdl.classifiers import OpStatePredict
+from tsdl.classifiers import OpSVMTrain
+from tsdl.classifiers import OpSVMPredict
+from tsdl.classifiers import OpRFTrain
+from tsdl.classifiers import OpRFPredict
+from tsdl.classifiers import OpMLPTrain
+from tsdl.classifiers import OpMLPPredict
+from tsdl.classifiers import OpDeepTrain
+from tsdl.data import OpPickleCache
+from tsdl.data import OpHDF5Cache
+from tsdl.report import OpClassificationReport
+from tsdl.tools import Classification
 
 from pylearn2.models.mlp import Sigmoid
 from pylearn2.models.mlp import RectifiedLinear

@@ -6,8 +6,8 @@ from lazyflow.rtype import SubRegion
 from .abcs import OpTrain
 from .abcs import OpPredict
 
-from deeplearning.tools import Classification
-from deeplearning.tools import Regression
+from tsdl.tools import Classification
+from tsdl.tools import Regression
 
 
 class OpStateTrain(OpTrain, Classification):

@@ -11,9 +11,9 @@ import vigra
 
 from lazyflow.operators.generic import OpMultiArrayStacker
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import Operator, InputSlot, OutputSlot
 
-from deeplearning.tools import build_operator
+from tsdl.tools import build_operator
 
 
 class OpSimpleCombiner(Operator):

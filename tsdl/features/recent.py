@@ -6,8 +6,8 @@ This module contains just one feature operator, OpRecent.
 import numpy as np
 import vigra
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
-from deeplearning.tools import SubRegion
+from tsdl.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import SubRegion
 
 
 class OpRecent(Operator):

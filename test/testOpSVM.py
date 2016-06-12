@@ -9,8 +9,8 @@ from sklearn.svm import SVR
 
 from lazyflow.graph import Graph
 
-from deeplearning.classifiers import OpSVMTrain
-from deeplearning.classifiers import OpSVMPredict
+from tsdl.classifiers import OpSVMTrain
+from tsdl.classifiers import OpSVMPredict
 
 
 class TestOpSVM(unittest.TestCase):

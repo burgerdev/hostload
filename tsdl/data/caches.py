@@ -11,9 +11,9 @@ import cPickle as pkl
 import numpy as np
 import h5py
 
-from deeplearning.tools import Operator, InputSlot, OutputSlot
+from tsdl.tools import Operator, InputSlot, OutputSlot
 
-from deeplearning.tools import Buildable
+from tsdl.tools import Buildable
 
 LOGGER = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ import numpy as np
 
 from matplotlib import pyplot as plt
 
-from deeplearning.data.rk4 import default_mackey_glass_series
+from tsdl.data.rk4 import default_mackey_glass_series
 
 if __name__ == "__main__":
     data = default_mackey_glass_series()
