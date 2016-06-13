@@ -81,7 +81,7 @@ def _get_conf(args):
                          "shape": (10000,)},
               "features": {"class": OpRecent, "window_size": 8},
               "target": {"class": OpExponentiallySegmentedPattern,
-                         "baseline_size": 8,
+                         "baseline_size": 32,
                          "num_segments": 1},
               "split": {"class": OpTrainTestSplit},
               "classifierCache": {"class": OpPickleCache},
